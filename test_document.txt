@@ -1,0 +1,1 @@
+ChatBot Platform je AI chatbot platforma podobná ChatBase. Umožňuje nahrávat dokumenty (PDF, DOCX, TXT) a chatovat s AI, která odpovídá na základě nahraného obsahu. Platforma používá Google Gemini pro generování odpovědí a RAG (Retrieval Augmented Generation) pro vyhledávání relevantního kontextu. Widget lze embedovat na libovolný web pomocí jednoduchého JavaScript kódu.

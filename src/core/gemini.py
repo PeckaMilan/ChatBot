@@ -91,7 +91,7 @@ class GeminiClient:
         """
         response = self.client.models.embed_content(
             model=self.EMBEDDING_MODEL,
-            content=text,
+            contents=text,
         )
         return response.embeddings[0].values
 
