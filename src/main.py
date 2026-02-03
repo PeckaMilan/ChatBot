@@ -7,6 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from src.config import get_settings
+from src.features.admin.router import router as admin_router
+from src.features.chat.router import router as chat_router
+from src.features.documents.router import router as documents_router
 
 
 @asynccontextmanager
@@ -44,6 +47,11 @@ def create_app() -> FastAPI:
 
     # Static files for widget
     app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    # Include routers
+    app.include_router(documents_router)
+    app.include_router(chat_router)
+    app.include_router(admin_router)
 
     # Health check endpoint
     @app.get("/health")

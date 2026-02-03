@@ -154,48 +154,48 @@ settings/{user_id}
 - [x] **T2.3** Gemini API client (chat + embeddings)
 - [ ] **T2.4** Firebase Auth middleware *[later - MVP can work without]*
 
-### Phase 3: Document Processing
-- [ ] **T3.1** Document upload endpoint (multipart/form-data)
-- [ ] **T3.2** PDF text extraction (PyMuPDF)
-- [ ] **T3.3** DOCX text extraction (python-docx)
-- [ ] **T3.4** TXT handling
-- [ ] **T3.5** Text chunking (RecursiveCharacterTextSplitter)
-- [ ] **T3.6** Embedding generation (batch)
-- [ ] **T3.7** Store chunks + embeddings in Firestore
-- [ ] **T3.8** Document status tracking
+### Phase 3: Document Processing ✅
+- [x] **T3.1** Document upload endpoint (multipart/form-data)
+- [x] **T3.2** PDF text extraction (PyMuPDF)
+- [x] **T3.3** DOCX text extraction (python-docx)
+- [x] **T3.4** TXT handling
+- [x] **T3.5** Text chunking (RecursiveCharacterTextSplitter)
+- [x] **T3.6** Embedding generation (batch)
+- [x] **T3.7** Store chunks + embeddings in Firestore
+- [x] **T3.8** Document status tracking
 
-### Phase 4: RAG Pipeline
-- [ ] **T4.1** Vector similarity search (cosine, in-memory)
-- [ ] **T4.2** Retrieval service (top-k chunks)
-- [ ] **T4.3** Prompt construction (system + context + query)
-- [ ] **T4.4** Gemini chat completion
-- [ ] **T4.5** Language auto-detection (langdetect)
-- [ ] **T4.6** Response formatting
+### Phase 4: RAG Pipeline ✅
+- [x] **T4.1** Vector similarity search (cosine, in-memory)
+- [x] **T4.2** Retrieval service (top-k chunks)
+- [x] **T4.3** Prompt construction (system + context + query)
+- [x] **T4.4** Gemini chat completion
+- [x] **T4.5** Language auto-detection (langdetect)
+- [x] **T4.6** Response formatting
 
-### Phase 5: Conversation Memory
-- [ ] **T5.1** Session ID generation
-- [ ] **T5.2** Conversation CRUD (Firestore)
-- [ ] **T5.3** Message history retrieval (last N messages)
-- [ ] **T5.4** Context window management
+### Phase 5: Conversation Memory ✅
+- [x] **T5.1** Session ID generation
+- [x] **T5.2** Conversation CRUD (Firestore)
+- [x] **T5.3** Message history retrieval (last N messages)
+- [x] **T5.4** Context window management
 
-### Phase 6: Chat API
-- [ ] **T6.1** POST /api/chat endpoint
-- [ ] **T6.2** POST /api/widget/{widget_id}/chat endpoint
-- [ ] **T6.3** GET /api/conversations/{id} endpoint
-- [ ] **T6.4** CORS configuration for widget
+### Phase 6: Chat API ✅
+- [x] **T6.1** POST /api/chat endpoint
+- [x] **T6.2** POST /api/widget/{widget_id}/chat endpoint
+- [ ] **T6.3** GET /api/conversations/{id} endpoint *[optional for MVP]*
+- [x] **T6.4** CORS configuration for widget
 
-### Phase 7: Embeddable Widget
-- [ ] **T7.1** Widget JavaScript (vanilla JS, IIFE)
-- [ ] **T7.2** Widget CSS (scoped, bubble UI)
-- [ ] **T7.3** Widget config endpoint
-- [ ] **T7.4** Session persistence (localStorage)
-- [ ] **T7.5** Static file serving
+### Phase 7: Embeddable Widget ✅
+- [x] **T7.1** Widget JavaScript (vanilla JS, IIFE)
+- [x] **T7.2** Widget CSS (scoped, bubble UI)
+- [x] **T7.3** Widget config endpoint
+- [x] **T7.4** Session persistence (localStorage)
+- [x] **T7.5** Static file serving
 
-### Phase 8: Admin Panel
-- [ ] **T8.1** Document list endpoint
-- [ ] **T8.2** Document delete endpoint
-- [ ] **T8.3** Settings CRUD endpoints
-- [ ] **T8.4** Basic HTML admin UI (nebo Jinja2 templates)
+### Phase 8: Admin Panel ✅
+- [x] **T8.1** Document list endpoint
+- [x] **T8.2** Document delete endpoint
+- [x] **T8.3** Settings CRUD endpoints
+- [ ] **T8.4** Basic HTML admin UI *[optional for MVP - API only]*
 
 ### Phase 9: Deployment
 - [ ] **T9.1** Cloud Run deployment (gcloud run deploy)
