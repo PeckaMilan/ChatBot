@@ -10,8 +10,8 @@ google-cloud-firestore>=2.14.0
 google-cloud-storage>=2.14.0
 firebase-admin>=6.4.0
 
-# Gemini AI
-google-genai>=1.0.0
+# Vertex AI (Gemini)
+google-cloud-aiplatform>=1.38.0
 
 # Document Processing
 PyMuPDF>=1.24.0

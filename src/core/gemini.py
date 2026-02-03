@@ -1,19 +1,26 @@
-"""Gemini API client for chat and embeddings."""
+"""Gemini API client using Vertex AI (no rate limits)."""
 
-from google import genai
-from google.genai import types
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part, Content
+from google.auth import default
+from google.auth.exceptions import DefaultCredentialsError
 
 from src.config import get_settings
 
 
 class GeminiClient:
-    """Wrapper for Gemini API operations."""
+    """Wrapper for Gemini API operations using Vertex AI."""
 
     _instance: "GeminiClient | None" = None
-    _client: genai.Client | None = None
+    _model: GenerativeModel | None = None
+    _initialized: bool = False
 
-    # Model configuration
-    CHAT_MODEL = "gemini-2.0-flash"
+    # Configuration
+    PROJECT_ID = "glassy-polymer-477908-g9"
+    REGION = "europe-west1"
+
+    # Model configuration - using Vertex AI models
+    CHAT_MODEL = "gemini-2.0-flash-001"
     EMBEDDING_MODEL = "text-embedding-004"
     EMBEDDING_DIMENSIONS = 768
 
@@ -22,13 +29,22 @@ class GeminiClient:
             cls._instance = super().__new__(cls)
         return cls._instance
 
+    def _ensure_initialized(self) -> None:
+        """Initialize Vertex AI if not already done."""
+        if not self._initialized:
+            try:
+                vertexai.init(project=self.PROJECT_ID, location=self.REGION)
+                self._initialized = True
+            except Exception as e:
+                raise RuntimeError(f"Vertex AI initialization failed: {e}")
+
     @property
-    def client(self) -> genai.Client:
-        """Get or create Gemini client."""
-        if self._client is None:
-            settings = get_settings()
-            self._client = genai.Client(api_key=settings.google_api_key)
-        return self._client
+    def model(self) -> GenerativeModel:
+        """Get or create Gemini model."""
+        self._ensure_initialized()
+        if self._model is None:
+            self._model = GenerativeModel(self.CHAT_MODEL)
+        return self._model
 
     async def chat(
         self,
@@ -49,39 +65,43 @@ class GeminiClient:
         Returns:
             Model's response text
         """
-        # Build the prompt
-        contents = []
+        self._ensure_initialized()
 
-        # Add system instruction
+        # Build system instruction
         system_instruction = system_prompt or "You are a helpful assistant."
         if context:
             system_instruction += f"\n\nUse the following context to answer questions:\n\n{context}"
 
-        # Add conversation history
+        # Create model with system instruction
+        model = GenerativeModel(
+            self.CHAT_MODEL,
+            system_instruction=system_instruction,
+        )
+
+        # Build contents from history
+        contents = []
         if history:
             for msg in history:
                 role = "user" if msg["role"] == "user" else "model"
-                contents.append(types.Content(role=role, parts=[types.Part(text=msg["content"])]))
+                contents.append(Content(role=role, parts=[Part.from_text(msg["content"])]))
 
         # Add current message
-        contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
+        contents.append(Content(role="user", parts=[Part.from_text(message)]))
 
         # Generate response
-        response = self.client.models.generate_content(
-            model=self.CHAT_MODEL,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.7,
-                max_output_tokens=2048,
-            ),
+        response = model.generate_content(
+            contents,
+            generation_config={
+                "temperature": 0.7,
+                "max_output_tokens": 2048,
+            }
         )
 
         return response.text
 
     async def generate_embedding(self, text: str) -> list[float]:
         """
-        Generate embedding for a single text.
+        Generate embedding for a single text using Vertex AI.
 
         Args:
             text: Text to embed
@@ -89,11 +109,14 @@ class GeminiClient:
         Returns:
             Embedding vector (768 dimensions)
         """
-        response = self.client.models.embed_content(
-            model=self.EMBEDDING_MODEL,
-            contents=text,
-        )
-        return response.embeddings[0].values
+        from vertexai.language_models import TextEmbeddingModel
+
+        self._ensure_initialized()
+
+        model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+        embeddings = model.get_embeddings([text])
+
+        return embeddings[0].values
 
     async def generate_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
         """
@@ -105,17 +128,22 @@ class GeminiClient:
         Returns:
             List of embedding vectors
         """
-        embeddings = []
-        # Process in batches to avoid rate limits
-        batch_size = 100
+        from vertexai.language_models import TextEmbeddingModel
+
+        self._ensure_initialized()
+
+        model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+
+        # Process in batches of 250 (Vertex AI limit)
+        all_embeddings = []
+        batch_size = 250
 
         for i in range(0, len(texts), batch_size):
-            batch = texts[i : i + batch_size]
-            for text in batch:
-                embedding = await self.generate_embedding(text)
-                embeddings.append(embedding)
+            batch = texts[i:i + batch_size]
+            embeddings = model.get_embeddings(batch)
+            all_embeddings.extend([e.values for e in embeddings])
 
-        return embeddings
+        return all_embeddings
 
 
 def get_gemini_client() -> GeminiClient:
