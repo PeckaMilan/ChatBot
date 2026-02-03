@@ -1,6 +1,6 @@
 # Business Requirements
 
-## Status: DISCOVERY
+## Status: APPROVED ✅
 
 > This document is created collaboratively by Human + Claude + Gemini
 
@@ -9,70 +9,109 @@
 ## Vision
 *What are we building and why?*
 
-[To be defined in discovery session]
+Vlastní ChatBase alternativa - chatbot platforma běžící na GCP, kterou lze:
+- Embedovat jako widget na vlastní weby
+- Prodávat jako SaaS produkt (měsíční předplatné)
 
 ## Problem Statement
 *What problem does this solve?*
 
-[To be defined]
+- ChatBase a podobné služby jsou drahé a závislé na třetí straně
+- Potřeba vlastní kontroly nad daty a customizací
+- Možnost monetizace vlastního řešení
 
 ## Target Users
 *Who is this for?*
 
-[To be defined]
+1. **Vlastní použití** - embed na vlastní weby
+2. **B2B zákazníci** - firmy chtějící chatbota na svůj web bez technických znalostí
 
 ## Success Criteria
 *How do we know it works?*
 
-[To be defined]
+- [ ] Chatbot odpovídá relevantně na základě nahraných dokumentů
+- [ ] Widget funguje na libovolném webu (embed script)
+- [ ] Admin panel umožňuje správu dokumentů a nastavení
+- [ ] Odpovědi v jazyce dotazu (auto-detection)
 
 ## Constraints
 *Budget, time, technology limitations?*
 
-[To be defined]
+- **Platform:** Google Cloud Platform (GCP)
+- **LLM:** Google Gemini API
+- **Architektura:** Single-tenant start, multi-tenant ready (project_id)
 
 ## Out of Scope
 *What are we explicitly NOT doing?*
 
-[To be defined]
+- Billing/subscription management (fáze Kolo+)
+- Vlastní LLM training
+- Voice/audio chatbot
+- Mobile app
+
+---
+
+## Technical Decisions
+
+| Rozhodnutí | Volba |
+|------------|-------|
+| LLM Backend | Google Gemini |
+| Hosting | GCP Cloud Run |
+| Databáze | Firestore (nebo PostgreSQL) |
+| Vector Store | Vertex AI Vector Search / Pinecone |
+| Auth | Firebase Auth |
+| Storage | Cloud Storage (dokumenty) |
 
 ---
 
 ## Iterations (Agile Roadmap)
 
 ### 🛴 Koloběžka (MVP)
-*Minimum viable - it works, nothing more*
+*Minimum viable - fungující chatbot pro vlastní web*
 
-- [ ] [Core feature 1]
-- [ ] [Core feature 2]
+- [ ] Upload dokumentů (PDF, DOCX, TXT)
+- [ ] Zpracování dokumentů → vector embeddings
+- [ ] Chat API endpoint (Gemini + RAG)
+- [ ] Embeddable widget (bublina vpravo dole)
+- [ ] Konverzační paměť (kontext v rámci session)
+- [ ] Základní admin panel (upload, nastavení)
+- [ ] Auto-detekce jazyka odpovědi
 
 ### 🚲 Kolo
-*Better UX, more features*
+*Lepší UX, více zdrojů*
 
-- [ ] [Enhancement 1]
-- [ ] [Enhancement 2]
+- [ ] Web scraping jako zdroj znalostí
+- [ ] Manuální FAQ editor
+- [ ] Historie konverzací + analytics dashboard
+- [ ] Customizace vzhledu widgetu
+- [ ] Multi-projekt podpora (více chatbotů)
 
 ### 🏍️ Motorka
-*Performance, reliability*
-
-- [ ] [Optimization 1]
-- [ ] [Optimization 2]
-
-### 🚗 Auto
 *Production ready*
 
-- [ ] [Production feature 1]
-- [ ] [Production feature 2]
+- [ ] Multi-tenant architektura (subdomény)
+- [ ] Rate limiting a abuse protection
+- [ ] Caching pro rychlejší odpovědi
+- [ ] Webhook integrace
+
+### 🚗 Auto
+*SaaS produkt*
+
+- [ ] Billing integration (Stripe)
+- [ ] Pricing tiers
+- [ ] Onboarding flow pro zákazníky
+- [ ] Self-service registration
 
 ### ✈️ Letadlo
-*Scale, enterprise*
+*Scale*
 
-- [ ] [Scale feature 1]
-- [ ] [Scale feature 2]
+- [ ] White-label řešení
+- [ ] API pro třetí strany
+- [ ] Enterprise features (SSO, audit log)
 
 ---
 
 ## Sign-off
 
-- [ ] Human approved
-- [ ] Ready for technical planning
+- [x] Human approved (2026-02-03)
+- [x] Ready for technical planning
