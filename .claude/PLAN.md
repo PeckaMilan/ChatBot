@@ -148,11 +148,11 @@ settings/{user_id}
 - [x] **T1.6** FastAPI základní setup (main.py, health endpoint)
 - [x] **T1.7** Dockerfile + local docker-compose
 
-### Phase 2: Core Clients
-- [ ] **T2.1** Firestore client wrapper
-- [ ] **T2.2** Cloud Storage client wrapper
-- [ ] **T2.3** Gemini API client (chat + embeddings)
-- [ ] **T2.4** Firebase Auth middleware
+### Phase 2: Core Clients ✅
+- [x] **T2.1** Firestore client wrapper
+- [x] **T2.2** Cloud Storage client wrapper
+- [x] **T2.3** Gemini API client (chat + embeddings)
+- [ ] **T2.4** Firebase Auth middleware *[later - MVP can work without]*
 
 ### Phase 3: Document Processing
 - [ ] **T3.1** Document upload endpoint (multipart/form-data)
