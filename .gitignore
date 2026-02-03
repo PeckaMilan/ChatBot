@@ -33,3 +33,18 @@ credentials.*
 
 # Claude session data
 .claude/gemini_session.json
+
+# GCP / Firebase
+firebase-debug.log
+firestore-debug.log
+service-account*.json
+*-credentials.json
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Uploads
+uploads/
+temp/

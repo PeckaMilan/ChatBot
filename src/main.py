@@ -1,0 +1,78 @@
+"""FastAPI application entrypoint."""
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from src.config import get_settings
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler for startup/shutdown."""
+    # Startup
+    settings = get_settings()
+    print(f"Starting ChatBot Platform in {settings.app_env} mode")
+    yield
+    # Shutdown
+    print("Shutting down ChatBot Platform")
+
+
+def create_app() -> FastAPI:
+    """Create and configure FastAPI application."""
+    settings = get_settings()
+
+    app = FastAPI(
+        title="ChatBot Platform",
+        description="ChatBase alternative - embeddable chatbot platform with RAG",
+        version="0.1.0",
+        lifespan=lifespan,
+        docs_url="/docs" if settings.app_debug else None,
+        redoc_url="/redoc" if settings.app_debug else None,
+    )
+
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Static files for widget
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    # Health check endpoint
+    @app.get("/health")
+    async def health_check():
+        return {"status": "healthy", "version": "0.1.0"}
+
+    # API info endpoint
+    @app.get("/")
+    async def root():
+        return {
+            "name": "ChatBot Platform",
+            "version": "0.1.0",
+            "docs": "/docs" if settings.app_debug else None,
+        }
+
+    return app
+
+
+# Create app instance
+app = create_app()
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    settings = get_settings()
+    uvicorn.run(
+        "src.main:app",
+        host=settings.app_host,
+        port=settings.app_port,
+        reload=settings.app_debug,
+    )

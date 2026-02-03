@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  chatbot:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+    volumes:
+      - ./src:/app/src:ro
+      - ./static:/app/static:ro
+    restart: unless-stopped
+
+  # Optional: Local Firebase emulator for development
+  # firebase-emulator:
+  #   image: andreysenov/firebase-tools
+  #   command: firebase emulators:start --only firestore,auth
+  #   ports:
+  #     - "4000:4000"  # Emulator UI
+  #     - "8081:8080"  # Firestore
+  #     - "9099:9099"  # Auth

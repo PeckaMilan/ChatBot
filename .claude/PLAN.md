@@ -139,14 +139,14 @@ settings/{user_id}
 
 ## Tasks - Koloběžka (MVP)
 
-### Phase 1: Project Setup (Foundation)
-- [ ] **T1.1** Inicializace Python projektu (pyproject.toml, requirements.txt)
-- [ ] **T1.2** Struktura složek dle návrhu
-- [ ] **T1.3** GCP projekt setup (Firestore, Storage, enable APIs)
-- [ ] **T1.4** Firebase Auth konfigurace
-- [ ] **T1.5** Environment variables (.env.example, config.py)
-- [ ] **T1.6** FastAPI základní setup (main.py, health endpoint)
-- [ ] **T1.7** Dockerfile + local docker-compose
+### Phase 1: Project Setup (Foundation) ✅
+- [x] **T1.1** Inicializace Python projektu (pyproject.toml, requirements.txt)
+- [x] **T1.2** Struktura složek dle návrhu
+- [ ] **T1.3** GCP projekt setup (Firestore, Storage, enable APIs) *[user action]*
+- [ ] **T1.4** Firebase Auth konfigurace *[user action]*
+- [x] **T1.5** Environment variables (.env.example, config.py)
+- [x] **T1.6** FastAPI základní setup (main.py, health endpoint)
+- [x] **T1.7** Dockerfile + local docker-compose
 
 ### Phase 2: Core Clients
 - [ ] **T2.1** Firestore client wrapper
