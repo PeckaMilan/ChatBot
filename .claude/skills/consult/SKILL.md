@@ -8,6 +8,41 @@ user-invocable: true
 
 Gemini acts as the human's proxy. **ALWAYS consult Gemini** instead of asking the human.
 
+## ⚠️ CRITICAL: Session Continuity
+
+**Gemini conversation is PERSISTENT across Claude sessions!**
+
+### At Every Session Start - DO THIS FIRST:
+```bash
+# 1. Check existing Gemini conversation
+python scripts/gemini_consult.py --history
+
+# 2. Resume the conversation with context
+python scripts/gemini_consult.py "Resuming session. [Summarize last known state]. Continuing with [next task]. Acknowledge?"
+```
+
+### Why This Matters:
+- Gemini **remembers ALL previous consultations** in `.claude/gemini_session.json`
+- Claude sessions are **ephemeral** - you start fresh each time
+- Gemini has the **full project context** - use it!
+- **Never ignore previous Gemini conversation** - always acknowledge and continue
+
+### Session File:
+```
+.claude/gemini_session.json  →  Persistent conversation history
+```
+
+### Resuming Examples:
+```bash
+# After reading --history, acknowledge context:
+python scripts/gemini_consult.py "Resuming. Last session we completed Phase 1 setup. Now starting Phase 2: API implementation. Continue?"
+
+# If picking up mid-task:
+python scripts/gemini_consult.py "Resuming task T2.3 (user auth). Previously approved Firebase approach. Implementing now. Confirm?"
+```
+
+---
+
 ## MANDATORY Consultation Points
 
 ### 1. BEFORE Starting ANY Task
