@@ -6,64 +6,118 @@ user-invocable: true
 
 # Autonomous Development with Gemini
 
-Gemini acts as the human's proxy. Consult Gemini instead of asking the human.
+Gemini acts as the human's proxy. **ALWAYS consult Gemini** instead of asking the human.
 
-## When to Consult
+## MANDATORY Consultation Points
 
-**BEFORE implementation:**
-- "I plan to implement X by doing Y. Approve?"
-- "I found two approaches: A or B. Which fits the plan better?"
-
-**AFTER implementation:**
-- "I completed X. Here's what I did: [summary]. Review?"
-
-**When stuck:**
-- "I encountered [problem]. My proposed solution is [X]. Approve?"
-
-## How to Consult
-
+### 1. BEFORE Starting ANY Task
 ```bash
-python scripts/gemini_consult.py "Your question or status update"
+python scripts/gemini_consult.py "Starting task [X]. Approach: [brief]. Approve?"
 ```
+
+### 2. BEFORE Creating ANY New File
+```bash
+python scripts/gemini_consult.py "Creating [filename] for [purpose]. Structure: [brief]. Approve?"
+```
+
+### 3. BEFORE Modifying Existing Code
+```bash
+python scripts/gemini_consult.py "Modifying [file] to [change]. Reason: [why]. Approve?"
+```
+
+### 4. AFTER Completing ANY Task
+```bash
+python scripts/gemini_consult.py "Completed [task]. Changes: [summary]. Files: [list]. Review?"
+```
+
+### 5. When Encountering ANY Problem
+```bash
+python scripts/gemini_consult.py "Problem: [issue]. Proposed solution: [approach]. Approve?"
+```
+
+### 6. Before Adding Dependencies
+```bash
+python scripts/gemini_consult.py "Adding dependency [package] for [reason]. Approve?"
+```
+
+## Consultation Checklist
+
+| Action | Must Consult? | Example |
+|--------|---------------|---------|
+| Start task from PLAN.md | ✅ ALWAYS | "Starting T1.2..." |
+| Create new file | ✅ ALWAYS | "Creating api/routes.py..." |
+| Modify existing file | ✅ ALWAYS | "Modifying main.py to add..." |
+| Add package/dependency | ✅ ALWAYS | "Adding fastapi..." |
+| Complete task | ✅ ALWAYS | "Completed T1.2. Summary:..." |
+| Architecture decision | ✅ ALWAYS | "Choosing between A and B..." |
+| Problem/blocker | ✅ ALWAYS | "Error encountered:..." |
+| Fix typo | ❌ Skip | Simple correction |
+| Format code | ❌ Skip | Just formatting |
 
 ## Gemini's Responses
 
-| Response | Meaning | Action |
-|----------|---------|--------|
-| `APPROVED` | Aligned with plan | Proceed |
-| `REVISE` | Minor changes needed | Adjust and retry |
-| `ESCALATE` | Plan deviation | **Stop and ask human** |
+| Response | Meaning | Your Action |
+|----------|---------|-------------|
+| `APPROVED` | Go ahead | ✅ Implement now |
+| `REVISE` | Adjust needed | 🔄 Modify approach, consult again |
+| `ESCALATE` | Plan deviation | 🛑 **STOP! Ask human directly** |
 
-## Workflow
+## Workflow Loop
 
 ```
-┌─────────────────────────────────────────┐
-│  1. Read PLAN.md                        │
-│  2. Consult Gemini with proposal        │
-│  3. If APPROVED → implement             │
-│  4. If REVISE → adjust, goto 2          │
-│  5. If ESCALATE → STOP, notify human    │
-│  6. After implementation → review       │
-│  7. Repeat until plan complete          │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  FOR EACH TASK in PLAN.md:                           │
+│                                                      │
+│  1. Read task description                            │
+│  2. Consult: "Starting [task]. Approach: X. OK?"     │
+│  3. Wait for APPROVED                                │
+│  4. FOR EACH file change:                            │
+│     a. Consult: "Creating/Modifying [file]. OK?"     │
+│     b. Wait for APPROVED                             │
+│     c. Make the change                               │
+│  5. Consult: "Completed [task]. Summary: X. Review?" │
+│  6. Wait for APPROVED                                │
+│  7. Move to next task                                │
+└──────────────────────────────────────────────────────┘
 ```
 
-## Important
-
-- **Always check PLAN.md first** - know what's in scope
-- **Never skip consultation** - Gemini is your approver
-- **ESCALATE = STOP** - Don't proceed, wait for human
-- **Keep Gemini updated** - Share progress regularly
-
-## Session Commands
+## Example Session
 
 ```bash
-# View current plan
-python scripts/gemini_consult.py --plan
+# Starting a task
+python scripts/gemini_consult.py "Starting T1.2: Create folder structure. Will create: backend/, frontend/, shared/. Approve?"
+# → APPROVED
 
+# Before creating file
+python scripts/gemini_consult.py "Creating backend/main.py with FastAPI app setup. Approve?"
+# → APPROVED
+
+# After creating file
+python scripts/gemini_consult.py "Created backend/main.py with FastAPI, CORS, health endpoint. Review?"
+# → APPROVED
+
+# Problem encountered
+python scripts/gemini_consult.py "Problem: Firebase SDK requires service account. Solution: Add to .env.example. Approve?"
+# → APPROVED
+```
+
+## IMPORTANT RULES
+
+1. **Never skip consultation** - Gemini is your tech lead
+2. **ESCALATE = FULL STOP** - Don't proceed, ask human directly
+3. **When in doubt, consult** - Better to ask than assume
+4. **Keep messages concise** - Brief but complete
+5. **Include file names** - Always mention which files are affected
+
+## Session Management
+
+```bash
 # View conversation history
 python scripts/gemini_consult.py --history
 
-# New session (clear history)
+# Clear history (new session)
 python scripts/gemini_consult.py --clear
+
+# Show current plan context
+python scripts/gemini_consult.py --plan
 ```
