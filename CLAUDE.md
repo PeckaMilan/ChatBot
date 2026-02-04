@@ -10,6 +10,26 @@ This project uses the autonomous Claude + Gemini development workflow.
 
 ---
 
+## ⚠️ FIRST: Gemini Session Continuity
+
+**Gemini conversation is PERSISTENT across Claude sessions!**
+
+### At EVERY Session Start - DO THIS FIRST:
+```bash
+# 1. Check existing Gemini conversation
+python scripts/gemini_consult.py --history
+
+# 2. Resume with context acknowledgment
+python scripts/gemini_consult.py "Resuming session. [Summary of last state]. Continuing with [next task]. Acknowledge?"
+```
+
+### Why This Matters:
+- Gemini **remembers ALL previous consultations** in `.claude/gemini_session.json`
+- Claude sessions are **ephemeral** - you start fresh each time
+- **Always read --history first** and acknowledge previous context
+
+---
+
 ## CRITICAL: Gemini Consultation Rules
 
 **Claude MUST consult Gemini via `python scripts/gemini_consult.py` in these situations:**
