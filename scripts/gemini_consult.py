@@ -25,7 +25,7 @@ from google.genai import types
 PROJECT_ROOT = Path(__file__).parent.parent
 HISTORY_FILE = PROJECT_ROOT / ".claude" / "gemini_session.json"
 PLAN_FILE = PROJECT_ROOT / ".claude" / "PLAN.md"
-MODEL_NAME = "gemini-3-flash-preview"
+MODEL_NAME = "gemini-3-pro-preview"
 
 # System instruction for Gemini as Human Proxy
 SYSTEM_INSTRUCTION = """You are the HUMAN PROXY for an autonomous development system.
