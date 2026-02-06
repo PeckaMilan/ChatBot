@@ -18,7 +18,7 @@ class GeminiClient:
 
     # Configuration - use settings or default
     REGION = "europe-west1"
-    GLOBAL_REGION = "us-central1"  # For preview models not yet in europe-west1
+    GLOBAL_REGION = "global"  # For Gemini 3 preview models
 
     @property
     def project_id(self) -> str:
