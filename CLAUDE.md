@@ -1,99 +1,60 @@
-# ChatBot - Claude Code Workflow
+# ChatBot Platform
 
-## Project Purpose
-This project uses the autonomous Claude + Gemini development workflow.
+Multi-tenant ChatBot SaaS Platform - ChatBase alternative.
+
+## Deployed
+
+- **API**: https://chatbot-api-182382115587.europe-west1.run.app
+- **Customer Portal**: https://chatbot-api-182382115587.europe-west1.run.app/static/portal/index.html
+
+## Features
+
+- **Multi-tenant**: Customers, widgets, documents isolated by customer_id
+- **RAG**: Upload documents or scrape URLs for knowledge base
+- **Gemini Models**: Select from Flash/Pro models per widget
+- **Analytics**: Usage trends, widget performance, top questions
+- **Embed Widget**: JavaScript snippet for any website
+- **Guardrails**: Custom system prompts per widget
+
+## Tech Stack
+
+- Python 3.12 + FastAPI
+- Gemini 2.0 (LLM + Embeddings)
+- Firestore (database + vectors)
+- Cloud Storage (documents)
+- Cloud Run (hosting)
+
+## Quick Start
+
+```bash
+# Local development
+pip install -r requirements.txt
+uvicorn src.main:app --reload
+
+# Deploy
+gcloud run deploy chatbot-api --source . --region europe-west1
+```
+
+## Admin Commands
+
+```bash
+# Create customer
+curl -X POST "/api/admin/customers" \
+  -H "X-Admin-Token: $ADMIN_TOKEN" \
+  -d '{"email": "x@y.com", "company_name": "Test", "subscription_tier": "starter"}'
+
+# Create API key
+curl -X POST "/api/admin/customers/{id}/create-api-key" \
+  -H "X-Admin-Token: $ADMIN_TOKEN"
+```
+
+## Documentation
+
+- `.claude/PLAN.md` - Full technical documentation
+- `.claude/BUSINESS.md` - Business requirements
 
 ## Environment
+
 - Platform: Windows 11
-- Shell: CMD
-- Workflow: Claude_Max template
-
----
-
-## ⚠️ FIRST: Gemini Session Continuity
-
-**Gemini conversation is PERSISTENT across Claude sessions!**
-
-### At EVERY Session Start - DO THIS FIRST:
-```bash
-# 1. Check existing Gemini conversation
-python scripts/gemini_consult.py --history
-
-# 2. Resume with context acknowledgment
-python scripts/gemini_consult.py "Resuming session. [Summary of last state]. Continuing with [next task]. Acknowledge?"
-```
-
-### Why This Matters:
-- Gemini **remembers ALL previous consultations** in `.claude/gemini_session.json`
-- Claude sessions are **ephemeral** - you start fresh each time
-- **Always read --history first** and acknowledge previous context
-
----
-
-## CRITICAL: Gemini Consultation Rules
-
-**Claude MUST consult Gemini via `python scripts/gemini_consult.py` in these situations:**
-
-### BEFORE Starting Work
-```bash
-python scripts/gemini_consult.py "Starting [task]. Plan: [brief description]. Approve?"
-```
-
-### BEFORE Each Major Change
-- Creating new files
-- Modifying architecture
-- Adding dependencies
-- Changing API endpoints
-- Database schema changes
-
-### AFTER Completing Each Task
-```bash
-python scripts/gemini_consult.py "Completed [task]. Summary: [what was done]. Review?"
-```
-
-### When Encountering Problems
-```bash
-python scripts/gemini_consult.py "Problem: [issue]. Proposed solution: [approach]. Approve?"
-```
-
-### Consultation Frequency
-| Situation | Consult? |
-|-----------|----------|
-| Before starting any task | ✅ YES |
-| After completing any task | ✅ YES |
-| Before creating new file | ✅ YES |
-| Before modifying existing code | ✅ YES |
-| When stuck or uncertain | ✅ YES |
-| Simple typo fix | ❌ No |
-
-### Response Handling
-| Response | Action |
-|----------|--------|
-| `APPROVED` | Proceed with implementation |
-| `REVISE` | Adjust approach, consult again |
-| `ESCALATE` | **STOP IMMEDIATELY**, ask human |
-
----
-
-## Commands Available
-- `/init` - Initialize Git + Business Discovery
-- `/plan` - Technical planning
-- `/start` - Start autonomous development
-- `/finish` - End session
-- `/test` - Run tests
-- `/docs` - Update documentation
-- `/kb` - Local knowledge base
-- `/ckb` - Central knowledge base (Claude_Knowledge)
-
-## Current Iteration
-Check `.claude/PLAN.md` for current tasks.
-
-## Knowledge Bases
-- **Local KB:** `.claude/knowledge/` - project-specific
-- **Central KB:** `C:\Users\mpeck\PycharmProjects\Claude_Knowledge\knowledge\` - shared across projects
-
-## Important Files
-- `.claude/BUSINESS.md` - Business requirements
-- `.claude/PLAN.md` - Technical plan with tasks
-- `.claude/gemini_session.json` - Gemini conversation history
-- `scripts/gemini_consult.py` - Gemini API integration
+- GCP Project: chatbot-platform-2026
+- Region: europe-west1

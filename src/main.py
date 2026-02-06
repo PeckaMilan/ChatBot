@@ -4,12 +4,20 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.config import get_settings
 from src.features.admin.router import router as admin_router
+from src.features.analytics.router import router as analytics_router
 from src.features.chat.router import router as chat_router
 from src.features.documents.router import router as documents_router
+from src.features.scraper.router import router as scraper_router
+
+# Multi-tenant SaaS features
+from src.features.billing.router import router as billing_router
+from src.features.customer_portal.router import router as customer_portal_router
+from src.features.admin_portal.router import router as admin_portal_router
 
 
 @asynccontextmanager
@@ -52,6 +60,13 @@ def create_app() -> FastAPI:
     app.include_router(documents_router)
     app.include_router(chat_router)
     app.include_router(admin_router)
+    app.include_router(analytics_router)
+    app.include_router(scraper_router)
+
+    # Multi-tenant SaaS routers
+    app.include_router(billing_router)
+    app.include_router(customer_portal_router)
+    app.include_router(admin_portal_router)
 
     # Health check endpoint
     @app.get("/health")
@@ -65,7 +80,13 @@ def create_app() -> FastAPI:
             "name": "ChatBot Platform",
             "version": "0.1.0",
             "docs": "/docs" if settings.app_debug else None,
+            "portal": "/portal",
         }
+
+    # Customer portal redirect
+    @app.get("/portal")
+    async def portal_redirect():
+        return RedirectResponse(url="/static/portal/index.html")
 
     return app
 

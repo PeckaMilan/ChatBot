@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Portal - ChatBot Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .login-container h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-sm { padding: 8px 16px; font-size: 14px; width: auto; }
+        .error { color: #e74c3c; margin-top: 15px; text-align: center; }
+        .success { color: #27ae60; margin-top: 15px; text-align: center; }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ddd;
+            border-top-color: #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Dashboard Styles */
+        .dashboard { display: none; }
+        .dashboard.active { display: block; }
+        .login-container.hidden { display: none; }
+
+        .header {
+            background: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { color: #2c3e50; font-size: 24px; }
+        .header .company-name { color: #666; font-size: 14px; }
+        .header .logout-btn {
+            padding: 8px 16px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e1e5eb;
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: #666;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+        }
+        .tab:hover { background: #f0f0f0; }
+        .tab.active { background: #007bff; color: white; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .stat-card h3 {
+            color: #888;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        .stat-card .sub {
+            font-size: 14px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .stat-card.success .value { color: #27ae60; }
+
+        .section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+        }
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .section h3 {
+            color: #2c3e50;
+            margin: 20px 0 10px 0;
+            font-size: 16px;
+        }
+        .section p {
+            color: #666;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .widget-list, .doc-list { list-style: none; }
+        .widget-item, .doc-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border: 1px solid #e1e5eb;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .widget-item:hover, .doc-item:hover { background: #f8f9fa; }
+        .widget-info h4, .doc-info h4 { margin-bottom: 4px; color: #2c3e50; }
+        .widget-info span, .doc-info span { font-size: 14px; color: #888; }
+        .widget-actions, .doc-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .widget-actions button, .doc-actions button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #e1e5eb; color: #333; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            position: relative;
+        }
+        .code-block .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 12px;
+            background: #444;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .code-block .copy-btn:hover { background: #555; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .usage-bar {
+            height: 12px;
+            background: #e1e5eb;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .usage-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transition: width 0.3s;
+        }
+        .usage-bar-fill.warning { background: linear-gradient(90deg, #e67e22, #f39c12); }
+        .usage-bar-fill.danger { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+
+        .tier-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .tier-free { background: #ecf0f1; color: #7f8c8d; }
+        .tier-starter { background: #d5f4e6; color: #27ae60; }
+        .tier-professional { background: #d6eaf8; color: #2980b9; }
+        .tier-enterprise { background: #f5eef8; color: #8e44ad; }
+
+        .upload-zone {
+            border: 2px dashed #e1e5eb;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-zone:hover { border-color: #007bff; background: #f8f9ff; }
+        .upload-zone.dragover { border-color: #007bff; background: #e3f2fd; }
+        .upload-zone input[type="file"] { display: none; }
+
+        .inline-form {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .inline-form .form-group { flex: 1; margin-bottom: 0; min-width: 200px; }
+        .inline-form .btn { width: auto; margin-top: 0; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-ready { background: #d5f4e6; color: #27ae60; }
+        .status-processing { background: #fff3cd; color: #856404; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        .status-pending { background: #e1e5eb; color: #666; }
+
+        /* Chat Preview */
+        .chat-preview-container {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .chat-preview-settings {
+            flex: 1;
+            min-width: 300px;
+        }
+        .chat-preview-box {
+            flex: 1;
+            min-width: 350px;
+            max-width: 450px;
+            border: 1px solid #e1e5eb;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+        .chat-header {
+            background: #007bff;
+            color: white;
+            padding: 16px;
+            font-weight: 600;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        .chat-message {
+            margin-bottom: 12px;
+            max-width: 80%;
+        }
+        .chat-message.user {
+            margin-left: auto;
+            text-align: right;
+        }
+        .chat-message .bubble {
+            display: inline-block;
+            padding: 10px 14px;
+            border-radius: 12px;
+            text-align: left;
+        }
+        .chat-message.user .bubble {
+            background: #007bff;
+            color: white;
+        }
+        .chat-message.assistant .bubble {
+            background: white;
+            border: 1px solid #e1e5eb;
+        }
+        .chat-input-area {
+            padding: 16px;
+            background: white;
+            border-top: 1px solid #e1e5eb;
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input-area input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .chat-input-area button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* Alert boxes */
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .alert-info {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            color: #1565c0;
+        }
+        .alert-warning {
+            background: #fff3e0;
+            border: 1px solid #ffcc80;
+            color: #e65100;
+        }
+
+        /* Secret key display */
+        .secret-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #e1e5eb;
+        }
+        .secret-display code {
+            flex: 1;
+            font-family: monospace;
+            font-size: 14px;
+            color: #333;
+        }
+        .secret-display .btn-sm {
+            flex-shrink: 0;
+        }
+
+        .guardrail-example {
+            background: #f0f7ff;
+            border: 1px solid #90caf9;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .guardrail-example h4 {
+            color: #1565c0;
+            margin-bottom: 8px;
+        }
+
+        /* Analytics Chart Styles */
+        .chart-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 200px;
+            padding: 10px 0;
+            border-bottom: 2px solid #e1e5eb;
+            overflow-x: auto;
+        }
+        .chart-bar {
+            flex: 1;
+            min-width: 8px;
+            max-width: 30px;
+            background: linear-gradient(to top, #007bff, #4dabf7);
+            border-radius: 4px 4px 0 0;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        .chart-bar:hover {
+            background: linear-gradient(to top, #0056b3, #007bff);
+        }
+        .chart-bar:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+        .chart-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            color: #888;
+        }
+        .period-selector {
+            display: flex;
+            gap: 8px;
+        }
+        .period-btn {
+            padding: 6px 12px !important;
+        }
+        .period-btn.active {
+            background: #007bff !important;
+            color: white !important;
+        }
+
+        /* Widget Performance Bars */
+        .widget-perf-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .widget-perf-name {
+            width: 120px;
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .widget-perf-bar-container {
+            flex: 1;
+            height: 24px;
+            background: #e1e5eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .widget-perf-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 12px;
+            color: white;
+            font-weight: 600;
+            min-width: 40px;
+        }
+
+        /* Top Questions */
+        #topQuestions li {
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            list-style-position: inside;
+        }
+        #topQuestions .question-count {
+            float: right;
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 800px) {
+            #tab-analytics > div:last-child {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Form -->
+    <div class="login-container" id="loginForm">
+        <h1>Customer Portal</h1>
+        <form onsubmit="login(event)">
+            <div class="form-group">
+                <label for="apiKey">API Key</label>
+                <input type="password" id="apiKey" placeholder="cb_live_..." required>
+            </div>
+            <button type="submit" class="btn" id="loginBtn">Sign In</button>
+            <div class="error" id="loginError"></div>
+        </form>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <header class="header">
+            <div>
+                <h1>Dashboard</h1>
+                <span class="company-name" id="companyName"></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <span class="tier-badge" id="tierBadge"></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('overview')">Overview</button>
+                <button class="tab" onclick="showTab('analytics')">Analytics</button>
+                <button class="tab" onclick="showTab('widgets')">Widgets</button>
+                <button class="tab" onclick="showTab('conversations')">Conversations</button>
+                <button class="tab" onclick="showTab('playground')">Playground</button>
+                <button class="tab" onclick="showTab('knowledge')">Knowledge Base</button>
+                <button class="tab" onclick="showTab('setup')">Widget Setup</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="tab-overview">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Messages Used</h3>
+                        <div class="value" id="messagesUsed">-</div>
+                        <div class="sub">this month</div>
+                        <div class="usage-bar">
+                            <div class="usage-bar-fill" id="usageBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Messages Remaining</h3>
+                        <div class="value" id="messagesRemaining">-</div>
+                        <div class="sub" id="messageLimit">of - limit</div>
+                    </div>
+                    <div class="stat-card success">
+                        <h3>Widgets</h3>
+                        <div class="value" id="widgetsCount">-</div>
+                        <div class="sub">active chatbots</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Documents</h3>
+                        <div class="value" id="documentsCountOverview">-</div>
+                        <div class="sub">in knowledge base</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Usage Details</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Input Tokens</h3>
+                            <div class="value" id="inputTokens">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Output Tokens</h3>
+                            <div class="value" id="outputTokens">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Documents</h3>
+                            <div class="value" id="documentsCount">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div class="tab-content" id="tab-analytics">
+                <!-- Summary Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>All-Time Messages</h3>
+                        <div class="value" id="analyticsAllTimeMessages">-</div>
+                        <div class="sub">total</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>This Month</h3>
+                        <div class="value" id="analyticsMonthlyMessages">-</div>
+                        <div class="sub">messages</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Conversations</h3>
+                        <div class="value" id="analyticsConversations">-</div>
+                        <div class="sub">all-time</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg Response</h3>
+                        <div class="value" id="analyticsAvgResponse">-</div>
+                        <div class="sub">seconds</div>
+                    </div>
+                </div>
+
+                <!-- Usage Trend Chart -->
+                <div class="section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>Usage Trend</h2>
+                        <div style="display: flex; gap: 16px; align-items: center;">
+                            <div class="period-selector">
+                                <button class="btn btn-sm btn-secondary period-btn active" data-days="30">30d</button>
+                                <button class="btn btn-sm btn-secondary period-btn" data-days="90">90d</button>
+                                <button class="btn btn-sm btn-secondary period-btn" data-days="360">360d</button>
+                                <button class="btn btn-sm btn-secondary period-btn" data-days="0">All</button>
+                            </div>
+                            <button class="btn btn-sm" onclick="exportCSV()" title="Download CSV">
+                                <span style="font-size: 12px;">&#x2913; CSV</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-container" id="usageChart">
+                        <div class="chart-loading">Loading chart...</div>
+                    </div>
+                    <div class="chart-labels" id="chartLabels"></div>
+                </div>
+
+                <!-- Widget Performance & Top Questions -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <div class="section">
+                        <h2>Widget Performance</h2>
+                        <div id="widgetPerformance">Loading...</div>
+                    </div>
+                    <div class="section">
+                        <h2>Top Questions</h2>
+                        <ol id="topQuestions" style="padding-left: 20px;">
+                            <li>Loading...</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Widgets Tab -->
+            <div class="tab-content" id="tab-widgets">
+                <div class="section">
+                    <h2>Your Widgets</h2>
+                    <ul class="widget-list" id="widgetList">
+                        <li class="widget-item">Loading...</li>
+                    </ul>
+                    <button class="btn btn-sm btn-success" onclick="showCreateWidgetModal()" style="margin-top: 16px;">+ Create Widget</button>
+                </div>
+            </div>
+
+            <!-- Conversations Tab -->
+            <div class="tab-content" id="tab-conversations">
+                <div class="section">
+                    <h2>Recent Conversations</h2>
+                    <p>View chat history from your widgets (last 30 days)</p>
+
+                    <div class="form-group" style="max-width: 300px; margin-bottom: 20px;">
+                        <label for="conversationWidgetFilter">Filter by Widget</label>
+                        <select id="conversationWidgetFilter" onchange="loadConversations()">
+                            <option value="">All Widgets</option>
+                        </select>
+                    </div>
+
+                    <ul class="widget-list" id="conversationList">
+                        <li class="widget-item">Loading...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Conversation Detail Modal -->
+            <div class="modal" id="conversationModal">
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h2>Conversation Details</h2>
+                        <button class="modal-close" onclick="closeModal('conversationModal')">&times;</button>
+                    </div>
+                    <div id="conversationMessages" style="max-height: 500px; overflow-y: auto;">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Playground Tab -->
+            <div class="tab-content" id="tab-playground">
+                <div class="section">
+                    <h2>Test Your Chatbot</h2>
+                    <p>Try out your chatbot with the current configuration. Changes to settings will be reflected immediately.</p>
+
+                    <div class="chat-preview-container">
+                        <div class="chat-preview-settings">
+                            <div class="form-group">
+                                <label for="playgroundWidget">Select Widget</label>
+                                <select id="playgroundWidget" onchange="loadWidgetForPlayground()">
+                                    <option value="">-- Select a widget --</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="playgroundModel">AI Model</label>
+                                <select id="playgroundModel">
+                                    <option value="gemini-2.0-flash-001">Gemini 2.0 Flash (Fast)</option>
+                                    <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro (Capable)</option>
+                                    <option value="gemini-1.5-pro-002">Gemini 1.5 Pro</option>
+                                    <option value="gemini-1.5-flash-002">Gemini 1.5 Flash</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="playgroundSystemPrompt">System Prompt (Guardrails)</label>
+                                <textarea id="playgroundSystemPrompt" rows="10" placeholder="Enter your system prompt with guardrails..."></textarea>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <button class="btn btn-sm btn-secondary" onclick="useGuardrailTemplate()">Load Default Template</button>
+                                <button class="btn btn-primary" onclick="savePlaygroundSettings()">Save Settings to Widget</button>
+                            </div>
+                        </div>
+
+                        <div class="chat-preview-box">
+                            <div class="chat-header" id="playgroundChatHeader">Chat Preview</div>
+                            <div class="chat-messages" id="playgroundMessages">
+                                <div class="chat-message assistant">
+                                    <div class="bubble">Select a widget to start testing.</div>
+                                </div>
+                            </div>
+                            <div class="chat-input-area">
+                                <input type="text" id="playgroundInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter')sendPlaygroundMessage()">
+                                <button onclick="sendPlaygroundMessage()">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Knowledge Base Tab -->
+            <div class="tab-content" id="tab-knowledge">
+                <!-- Upload Documents -->
+                <div class="section">
+                    <h2>Upload Documents</h2>
+                    <p>Upload PDF, DOCX, TXT, or MD files (max 50MB each, up to 10 files at once).</p>
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md" multiple onchange="uploadFiles(this.files)">
+                        <p style="font-size: 18px; color: #666;">Drop files here or click to upload</p>
+                        <p style="font-size: 14px; color: #999; margin-top: 8px;">Supported: PDF, DOCX, TXT, MD (multiple files allowed)</p>
+                    </div>
+                    <div id="uploadStatus" style="margin-top: 16px;"></div>
+                </div>
+
+                <!-- Scrape URLs -->
+                <div class="section">
+                    <h2>Scrape Website</h2>
+                    <p>Add content from a URL or sitemap to your knowledge base.</p>
+                    <div class="inline-form">
+                        <div class="form-group">
+                            <label for="scrapeUrl">URL</label>
+                            <input type="url" id="scrapeUrl" placeholder="https://example.com" required>
+                        </div>
+                        <div class="form-group" style="max-width: 150px;">
+                            <label for="scrapeType">Type</label>
+                            <select id="scrapeType">
+                                <option value="single">Single Page</option>
+                                <option value="sitemap">Sitemap</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="scrapeUrl()">Scrape</button>
+                    </div>
+                    <div id="scrapeStatus" style="margin-top: 16px;"></div>
+                </div>
+
+                <!-- Document List -->
+                <div class="section">
+                    <h2>Your Documents</h2>
+                    <ul class="doc-list" id="docList">
+                        <li class="doc-item">Loading...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Widget Setup Tab -->
+            <div class="tab-content" id="tab-setup">
+                <div class="section">
+                    <h2>Widget Setup</h2>
+
+                    <div class="form-group">
+                        <label for="setupWidget">Select Widget</label>
+                        <select id="setupWidget" onchange="loadWidgetSetup()">
+                            <option value="">-- Select a widget --</option>
+                        </select>
+                    </div>
+
+                    <div id="setupContent" style="display: none;">
+                        <!-- Embed Code -->
+                        <h3>1. Install Chat Widget</h3>
+                        <p>Paste this code on your site to install the chat widget and enable AI-powered support.</p>
+
+                        <div class="code-block" id="embedCodeBlock">
+                            <button class="copy-btn" onclick="copyCode('embedCodeBlock')">Copy</button>
+                            <code id="setupEmbedCode"></code>
+                        </div>
+
+                        <!-- Identity Verification -->
+                        <h3 style="margin-top: 30px;">2. Identity Verification (Optional)</h3>
+                        <div class="alert alert-info">
+                            Secure your AI Agent by generating a JWT for each logged-in user. This enables secure identity verification for personalized responses.
+                        </div>
+
+                        <p><strong>Secret Key:</strong></p>
+                        <div class="secret-display">
+                            <code id="jwtSecretDisplay">Not configured</code>
+                            <button class="btn btn-sm btn-secondary" onclick="regenerateJwtSecret()">Regenerate</button>
+                            <button class="btn btn-sm btn-primary" onclick="copySecret()">Copy</button>
+                        </div>
+
+                        <h3 style="margin-top: 20px;">Server-side Code (Node.js)</h3>
+                        <div class="code-block" id="serverCodeBlock">
+                            <button class="copy-btn" onclick="copyCode('serverCodeBlock')">Copy</button>
+                            <code id="serverCode"></code>
+                        </div>
+
+                        <h3 style="margin-top: 20px;">Client-side Code</h3>
+                        <div class="code-block" id="clientCodeBlock">
+                            <button class="copy-btn" onclick="copyCode('clientCodeBlock')">Copy</button>
+                            <code id="clientCode"></code>
+                        </div>
+
+                        <!-- Allowed Domains -->
+                        <h3 style="margin-top: 30px;">3. Allowed Domains (Optional)</h3>
+                        <p>Restrict where your widget can be embedded for security.</p>
+                        <div class="form-group">
+                            <input type="text" id="allowedDomains" placeholder="example.com, app.example.com">
+                            <small style="color: #666;">Comma-separated list of domains. Leave empty to allow all.</small>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="saveAllowedDomains()">Save Domains</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Widget Modal -->
+    <div class="modal" id="createWidgetModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Widget</h2>
+                <button class="modal-close" onclick="closeModal('createWidgetModal')">&times;</button>
+            </div>
+            <form onsubmit="createWidget(event)">
+                <div class="form-group">
+                    <label for="widgetName">Widget Name</label>
+                    <input type="text" id="widgetName" placeholder="My Chatbot" required>
+                </div>
+                <div class="form-group">
+                    <label for="chatbotName">Chatbot Display Name</label>
+                    <input type="text" id="chatbotName" placeholder="Assistant" value="Assistant">
+                </div>
+                <div class="form-group">
+                    <label for="welcomeMessage">Welcome Message</label>
+                    <input type="text" id="welcomeMessage" placeholder="Hello! How can I help you?" value="Hello! How can I help you?">
+                </div>
+                <div class="form-group">
+                    <label for="systemPrompt">System Prompt (with Guardrails)</label>
+                    <textarea id="systemPrompt" rows="8"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="widgetModel">AI Model</label>
+                    <select id="widgetModel">
+                        <option value="gemini-2.0-flash-001">Gemini 2.0 Flash (Fast, Cost-effective)</option>
+                        <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro (More Capable)</option>
+                        <option value="gemini-1.5-pro-002">Gemini 1.5 Pro</option>
+                        <option value="gemini-1.5-flash-002">Gemini 1.5 Flash</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="widgetColor">Widget Color</label>
+                    <input type="color" id="widgetColor" value="#007bff">
+                </div>
+                <button type="submit" class="btn">Create Widget</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Widget Modal -->
+    <div class="modal" id="editWidgetModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Widget</h2>
+                <button class="modal-close" onclick="closeModal('editWidgetModal')">&times;</button>
+            </div>
+            <form onsubmit="saveWidget(event)">
+                <input type="hidden" id="editWidgetId">
+                <div class="form-group">
+                    <label for="editWidgetName">Widget Name</label>
+                    <input type="text" id="editWidgetName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editChatbotName">Chatbot Display Name</label>
+                    <input type="text" id="editChatbotName">
+                </div>
+                <div class="form-group">
+                    <label for="editWelcomeMessage">Welcome Message</label>
+                    <input type="text" id="editWelcomeMessage">
+                </div>
+                <div class="form-group">
+                    <label for="editSystemPrompt">System Prompt (with Guardrails)</label>
+                    <textarea id="editSystemPrompt" rows="8"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editWidgetModel">AI Model</label>
+                    <select id="editWidgetModel">
+                        <option value="gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                        <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro</option>
+                        <option value="gemini-1.5-pro-002">Gemini 1.5 Pro</option>
+                        <option value="gemini-1.5-flash-002">Gemini 1.5 Flash</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editWidgetColor">Widget Color</label>
+                    <input type="color" id="editWidgetColor">
+                </div>
+                <div class="form-group">
+                    <label for="editDocumentIds">Assigned Documents (IDs, comma-separated)</label>
+                    <input type="text" id="editDocumentIds" placeholder="doc1,doc2,doc3">
+                </div>
+                <button type="submit" class="btn">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let apiKey = localStorage.getItem('chatbot_api_key');
+        let widgets = [];
+        let currentPlaygroundWidget = null;
+        let playgroundSessionId = null;
+
+        // Default guardrails template
+        const DEFAULT_GUARDRAILS = `You are a helpful AI assistant for our company.
+
+GUARDRAILS - You MUST follow these rules:
+
+1. ALLOWED TOPICS:
+   - Questions about our products and services
+   - General customer support inquiries
+   - Company information and policies
+   - Technical help related to our offerings
+
+2. FORBIDDEN TOPICS - Do NOT discuss:
+   - Competitor products or comparisons
+   - Political, religious, or controversial topics
+   - Personal opinions or advice
+   - Any illegal activities
+   - Medical, legal, or financial advice
+
+3. BEHAVIOR RULES:
+   - Always be polite and professional
+   - If unsure, say "I don't have that information"
+   - Never make up facts or data
+   - Redirect off-topic questions politely
+   - Protect user privacy - never ask for sensitive data
+
+4. RESPONSE STYLE:
+   - Keep responses concise and helpful
+   - Use bullet points for complex information
+   - Offer to clarify if the question is ambiguous
+
+If asked about forbidden topics, respond:
+"I'm focused on helping you with [company] products and services. Is there something specific about our offerings I can help you with?"`;
+
+        // Check if already logged in
+        if (apiKey) {
+            loadDashboard();
+        }
+
+        // Set default guardrails
+        document.getElementById('systemPrompt').value = DEFAULT_GUARDRAILS;
+
+        // Tab navigation
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            if (tabName === 'analytics') loadAnalytics();
+            if (tabName === 'widgets') loadWidgets();
+            if (tabName === 'conversations') loadConversationsTab();
+            if (tabName === 'knowledge') loadDocuments();
+            if (tabName === 'playground') loadPlayground();
+            if (tabName === 'setup') loadSetupTab();
+        }
+
+        async function login(event) {
+            event.preventDefault();
+            const key = document.getElementById('apiKey').value;
+            const btn = document.getElementById('loginBtn');
+            const error = document.getElementById('loginError');
+
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+            error.textContent = '';
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${key}` }
+                });
+
+                if (!response.ok) throw new Error('Invalid API key');
+
+                localStorage.setItem('chatbot_api_key', key);
+                apiKey = key;
+                loadDashboard();
+            } catch (e) {
+                error.textContent = e.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('chatbot_api_key');
+            apiKey = null;
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('dashboard').classList.remove('active');
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_URL}/api/portal/dashboard`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+
+                if (!response.ok) { logout(); return; }
+
+                const data = await response.json();
+
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('dashboard').classList.add('active');
+
+                document.getElementById('companyName').textContent = data.company_name;
+                document.getElementById('tierBadge').textContent = data.subscription_tier;
+                document.getElementById('tierBadge').className = `tier-badge tier-${data.subscription_tier}`;
+
+                const usage = data.usage;
+                const totalLimit = usage.total_messages + usage.messages_remaining;
+                const usagePercent = (usage.total_messages / totalLimit) * 100;
+
+                document.getElementById('messagesUsed').textContent = usage.total_messages.toLocaleString();
+                document.getElementById('messagesRemaining').textContent = usage.messages_remaining.toLocaleString();
+                document.getElementById('messageLimit').textContent = `of ${totalLimit.toLocaleString()} limit`;
+                document.getElementById('widgetsCount').textContent = data.widgets_count;
+                document.getElementById('documentsCountOverview').textContent = data.documents_count;
+                document.getElementById('inputTokens').textContent = usage.total_input_tokens.toLocaleString();
+                document.getElementById('outputTokens').textContent = usage.total_output_tokens.toLocaleString();
+                document.getElementById('documentsCount').textContent = data.documents_count;
+
+                const usageBar = document.getElementById('usageBar');
+                usageBar.style.width = `${Math.min(usagePercent, 100)}%`;
+                usageBar.className = 'usage-bar-fill';
+                if (usagePercent > 80) usageBar.classList.add('warning');
+                if (usagePercent > 95) usageBar.classList.add('danger');
+
+                // Load widgets for other tabs
+                await loadWidgetsData();
+
+            } catch (e) {
+                console.error(e);
+                logout();
+            }
+        }
+
+        async function loadWidgetsData() {
+            try {
+                const response = await fetch(`${API_URL}/api/portal/widgets`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                widgets = await response.json();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadWidgets() {
+            await loadWidgetsData();
+            const list = document.getElementById('widgetList');
+
+            if (widgets.length === 0) {
+                list.innerHTML = '<li class="widget-item">No widgets yet. Create one to get started!</li>';
+                return;
+            }
+
+            list.innerHTML = widgets.map(w => `
+                <li class="widget-item">
+                    <div class="widget-info">
+                        <h4>${escapeHtml(w.name)}</h4>
+                        <span>Chatbot: ${escapeHtml(w.chatbot_name)} | Model: ${w.model || 'gemini-2.0-flash-001'} | ${w.is_active ? 'Active' : 'Inactive'}</span>
+                    </div>
+                    <div class="widget-actions">
+                        <button class="btn-warning btn-sm" onclick="testWidget('${w.id}')">Test</button>
+                        <button class="btn-secondary btn-sm" onclick="showEditWidgetModal('${w.id}')">Edit</button>
+                        <button class="btn-primary btn-sm" onclick="showTab('setup'); document.getElementById('setupWidget').value='${w.id}'; loadWidgetSetup();">Setup</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function testWidget(widgetId) {
+            document.getElementById('playgroundWidget').value = widgetId;
+            showTab('playground');
+            loadWidgetForPlayground();
+        }
+
+        async function loadPlayground() {
+            const select = document.getElementById('playgroundWidget');
+            select.innerHTML = '<option value="">-- Select a widget --</option>' +
+                widgets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+        }
+
+        async function loadWidgetForPlayground() {
+            const widgetId = document.getElementById('playgroundWidget').value;
+            if (!widgetId) return;
+
+            const widget = widgets.find(w => w.id === widgetId);
+            if (!widget) return;
+
+            currentPlaygroundWidget = widget;
+            playgroundSessionId = 'playground-' + Date.now();
+
+            document.getElementById('playgroundModel').value = widget.model || 'gemini-2.0-flash-001';
+            document.getElementById('playgroundSystemPrompt').value = widget.system_prompt || DEFAULT_GUARDRAILS;
+            document.getElementById('playgroundChatHeader').textContent = widget.chatbot_name || 'Chat Preview';
+            document.getElementById('playgroundChatHeader').style.background = widget.widget_color || '#007bff';
+
+            document.getElementById('playgroundMessages').innerHTML = `
+                <div class="chat-message assistant">
+                    <div class="bubble">${escapeHtml(widget.welcome_message || 'Hello! How can I help you?')}</div>
+                </div>
+            `;
+        }
+
+        async function sendPlaygroundMessage() {
+            const input = document.getElementById('playgroundInput');
+            const message = input.value.trim();
+            if (!message || !currentPlaygroundWidget) return;
+
+            const messagesDiv = document.getElementById('playgroundMessages');
+
+            // Add user message
+            messagesDiv.innerHTML += `
+                <div class="chat-message user">
+                    <div class="bubble">${escapeHtml(message)}</div>
+                </div>
+            `;
+
+            input.value = '';
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Add loading indicator
+            messagesDiv.innerHTML += `
+                <div class="chat-message assistant" id="loadingMsg">
+                    <div class="bubble">Thinking...</div>
+                </div>
+            `;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_URL}/api/chat/widget/${currentPlaygroundWidget.id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: playgroundSessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                // Remove loading
+                document.getElementById('loadingMsg')?.remove();
+
+                if (response.ok) {
+                    messagesDiv.innerHTML += `
+                        <div class="chat-message assistant">
+                            <div class="bubble">${escapeHtml(data.message)}</div>
+                        </div>
+                    `;
+                } else {
+                    messagesDiv.innerHTML += `
+                        <div class="chat-message assistant">
+                            <div class="bubble" style="background: #fee; border-color: #fcc;">Error: ${escapeHtml(data.detail || 'Unknown error')}</div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                document.getElementById('loadingMsg')?.remove();
+                messagesDiv.innerHTML += `
+                    <div class="chat-message assistant">
+                        <div class="bubble" style="background: #fee; border-color: #fcc;">Error: ${e.message}</div>
+                    </div>
+                `;
+            }
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function useGuardrailTemplate() {
+            document.getElementById('playgroundSystemPrompt').value = DEFAULT_GUARDRAILS;
+        }
+
+        // Conversations
+        async function loadConversationsTab() {
+            const select = document.getElementById('conversationWidgetFilter');
+            select.innerHTML = '<option value="">All Widgets</option>' +
+                widgets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+            await loadConversations();
+        }
+
+        async function loadConversations() {
+            const widgetId = document.getElementById('conversationWidgetFilter').value;
+            const list = document.getElementById('conversationList');
+
+            try {
+                let url = `${API_URL}/api/portal/conversations`;
+                if (widgetId) url += `?widget_id=${widgetId}`;
+
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+
+                const data = await response.json();
+
+                if (!data.conversations || data.conversations.length === 0) {
+                    list.innerHTML = '<li class="widget-item">No conversations yet.</li>';
+                    return;
+                }
+
+                list.innerHTML = data.conversations.map(c => `
+                    <li class="widget-item">
+                        <div class="widget-info">
+                            <h4>${escapeHtml(c.first_message.substring(0, 80))}${c.first_message.length > 80 ? '...' : ''}</h4>
+                            <span>
+                                Widget: ${escapeHtml(c.widget_name)} |
+                                Messages: ${c.message_count} |
+                                ${formatDate(c.last_message_at)}
+                            </span>
+                        </div>
+                        <div class="widget-actions">
+                            <button class="btn-primary btn-sm" onclick="viewConversation('${c.id}')">View</button>
+                        </div>
+                    </li>
+                `).join('');
+            } catch (e) {
+                list.innerHTML = `<li class="widget-item">Error loading conversations: ${e.message}</li>`;
+            }
+        }
+
+        async function viewConversation(conversationId) {
+            const container = document.getElementById('conversationMessages');
+            container.innerHTML = 'Loading...';
+            document.getElementById('conversationModal').classList.add('active');
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/conversations/${conversationId}/messages`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+
+                const data = await response.json();
+
+                if (!data.messages || data.messages.length === 0) {
+                    container.innerHTML = '<p style="color: #666;">No messages found.</p>';
+                    return;
+                }
+
+                container.innerHTML = data.messages.map(m => `
+                    <div class="chat-message ${m.role}" style="margin-bottom: 16px;">
+                        <div style="font-size: 12px; color: #888; margin-bottom: 4px;">
+                            <strong>${m.role === 'user' ? 'User' : 'Assistant'}</strong>
+                            ${m.created_at ? ' - ' + formatDate(m.created_at) : ''}
+                        </div>
+                        <div class="bubble" style="display: inline-block; max-width: 90%; ${m.role === 'user' ? 'background: #007bff; color: white;' : 'background: #f0f0f0;'}">
+                            ${escapeHtml(m.content)}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = `<p class="error">Error: ${e.message}</p>`;
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleString('cs-CZ', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Analytics
+        let currentAnalyticsPeriod = 30;
+
+        async function loadAnalytics() {
+            await Promise.all([
+                loadAnalyticsOverview(),
+                loadUsageChart(currentAnalyticsPeriod),
+                loadWidgetPerformance(),
+                loadTopQuestions()
+            ]);
+
+            // Setup period selector
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentAnalyticsPeriod = parseInt(this.dataset.days);
+                    await loadUsageChart(currentAnalyticsPeriod);
+                });
+            });
+        }
+
+        async function loadAnalyticsOverview() {
+            try {
+                const response = await fetch(`${API_URL}/api/portal/analytics/overview`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const data = await response.json();
+
+                document.getElementById('analyticsAllTimeMessages').textContent =
+                    data.all_time.total_messages.toLocaleString();
+                document.getElementById('analyticsMonthlyMessages').textContent =
+                    data.current_month.messages.toLocaleString();
+                document.getElementById('analyticsConversations').textContent =
+                    data.all_time.total_conversations.toLocaleString();
+
+                const avgSec = (data.all_time.avg_response_time_ms / 1000).toFixed(2);
+                document.getElementById('analyticsAvgResponse').textContent = avgSec + 's';
+            } catch (e) {
+                console.error('Failed to load analytics overview:', e);
+            }
+        }
+
+        async function loadUsageChart(days) {
+            const container = document.getElementById('usageChart');
+            const labels = document.getElementById('chartLabels');
+            container.innerHTML = '<div class="chart-loading">Loading chart...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/analytics/daily-usage?days=${days}`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const data = await response.json();
+
+                if (!data.data || data.data.length === 0) {
+                    container.innerHTML = '<div class="chart-loading">No data yet</div>';
+                    labels.innerHTML = '';
+                    return;
+                }
+
+                // Find max value for scaling
+                const maxMessages = Math.max(...data.data.map(d => d.messages), 1);
+
+                // Render bars
+                container.innerHTML = data.data.map(d => {
+                    const height = (d.messages / maxMessages) * 100;
+                    const date = new Date(d.date);
+                    const tooltip = `${date.toLocaleDateString('cs-CZ')}: ${d.messages} messages`;
+                    return `<div class="chart-bar" style="height: ${Math.max(height, 2)}%" data-tooltip="${tooltip}"></div>`;
+                }).join('');
+
+                // Render labels
+                const firstDate = new Date(data.data[0].date);
+                const lastDate = new Date(data.data[data.data.length - 1].date);
+                labels.innerHTML = `
+                    <span>${firstDate.toLocaleDateString('cs-CZ')}</span>
+                    <span>${lastDate.toLocaleDateString('cs-CZ')}</span>
+                `;
+            } catch (e) {
+                container.innerHTML = '<div class="chart-loading">Error loading chart</div>';
+                console.error('Failed to load usage chart:', e);
+            }
+        }
+
+        async function loadWidgetPerformance() {
+            const container = document.getElementById('widgetPerformance');
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/analytics/widgets`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const data = await response.json();
+
+                if (!data.widgets || data.widgets.length === 0) {
+                    container.innerHTML = '<p style="color: #888;">No widgets yet</p>';
+                    return;
+                }
+
+                const maxMessages = Math.max(...data.widgets.map(w => w.messages), 1);
+
+                container.innerHTML = data.widgets.map(w => {
+                    const width = (w.messages / maxMessages) * 100;
+                    return `
+                        <div class="widget-perf-item">
+                            <div class="widget-perf-name" title="${escapeHtml(w.name)}">${escapeHtml(w.name)}</div>
+                            <div class="widget-perf-bar-container">
+                                <div class="widget-perf-bar" style="width: ${Math.max(width, 5)}%">${w.messages}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                container.innerHTML = '<p class="error">Error loading widget performance</p>';
+                console.error('Failed to load widget performance:', e);
+            }
+        }
+
+        async function loadTopQuestions() {
+            const container = document.getElementById('topQuestions');
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/analytics/top-questions?limit=10`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const data = await response.json();
+
+                if (!data.questions || data.questions.length === 0) {
+                    container.innerHTML = '<li style="color: #888;">No questions yet</li>';
+                    return;
+                }
+
+                container.innerHTML = data.questions.map(q => `
+                    <li>
+                        <span class="question-count">${q.count}x</span>
+                        ${escapeHtml(q.text.substring(0, 80))}${q.text.length > 80 ? '...' : ''}
+                    </li>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<li class="error">Error loading questions</li>';
+                console.error('Failed to load top questions:', e);
+            }
+        }
+
+        async function exportCSV() {
+            try {
+                const response = await fetch(`${API_URL}/api/portal/analytics/export?days=${currentAnalyticsPeriod}`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Export failed');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `analytics_${currentAnalyticsPeriod === 0 ? 'all' : currentAnalyticsPeriod + 'd'}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Failed to export CSV: ' + e.message);
+                console.error('CSV export error:', e);
+            }
+        }
+
+        async function savePlaygroundSettings() {
+            if (!currentPlaygroundWidget) {
+                alert('Please select a widget first');
+                return;
+            }
+
+            const data = {
+                model: document.getElementById('playgroundModel').value,
+                system_prompt: document.getElementById('playgroundSystemPrompt').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/widgets/${currentPlaygroundWidget.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Save failed');
+
+                alert('Settings saved!');
+                await loadWidgetsData();
+                currentPlaygroundWidget = widgets.find(w => w.id === currentPlaygroundWidget.id);
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function loadSetupTab() {
+            const select = document.getElementById('setupWidget');
+            select.innerHTML = '<option value="">-- Select a widget --</option>' +
+                widgets.map(w => `<option value="${w.id}">${escapeHtml(w.name)}</option>`).join('');
+        }
+
+        async function loadWidgetSetup() {
+            const widgetId = document.getElementById('setupWidget').value;
+            if (!widgetId) {
+                document.getElementById('setupContent').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('setupContent').style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/widgets/${widgetId}/embed-code`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const data = await response.json();
+
+                // Embed code
+                document.getElementById('setupEmbedCode').textContent = data.standard;
+
+                // JWT Secret
+                const widget = widgets.find(w => w.id === widgetId);
+                const jwtSecret = data.jwt_secret || 'Not configured - enable in widget settings';
+                document.getElementById('jwtSecretDisplay').textContent = jwtSecret;
+
+                // Server code
+                document.getElementById('serverCode').textContent = `// --- SERVER CODE (Node.js) ---
+const jwt = require('jsonwebtoken');
+
+const secret = process.env.CHATBOT_IDENTITY_SECRET; // Store securely!
+// Secret: ${jwtSecret.substring(0, 10)}...
+
+const user = await getSignedInUser(); // Get current user
+
+const token = jwt.sign(
+    {
+        user_id: user.id,
+        email: user.email,
+        name: user.name,
+        // ... other custom attributes
+    },
+    secret,
+    { expiresIn: '1h' }
+);
+
+// Send token to client`;
+
+                // Client code
+                document.getElementById('clientCode').textContent = `// --- CLIENT CODE ---
+const token = await getUserToken(); // Get token from your server
+
+// Identify the user with the chatbot
+window.ChatbotWidget.identify(token);`;
+
+                // Allowed domains
+                document.getElementById('allowedDomains').value = (widget?.allowed_domains || []).join(', ');
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function regenerateJwtSecret() {
+            const widgetId = document.getElementById('setupWidget').value;
+            if (!widgetId) return;
+
+            if (!confirm('Regenerate JWT secret? Existing tokens will become invalid.')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/widgets/${widgetId}/regenerate-jwt-secret`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+
+                const data = await response.json();
+                document.getElementById('jwtSecretDisplay').textContent = data.jwt_secret;
+                await loadWidgetsData();
+                alert('JWT secret regenerated!');
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function copySecret() {
+            const secret = document.getElementById('jwtSecretDisplay').textContent;
+            navigator.clipboard.writeText(secret);
+            alert('Secret copied!');
+        }
+
+        async function saveAllowedDomains() {
+            const widgetId = document.getElementById('setupWidget').value;
+            if (!widgetId) return;
+
+            const domains = document.getElementById('allowedDomains').value
+                .split(',')
+                .map(d => d.trim())
+                .filter(d => d);
+
+            try {
+                await fetch(`${API_URL}/api/portal/widgets/${widgetId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ allowed_domains: domains })
+                });
+
+                alert('Domains saved!');
+                await loadWidgetsData();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function copyCode(blockId) {
+            const code = document.querySelector(`#${blockId} code`).textContent;
+            navigator.clipboard.writeText(code);
+            alert('Code copied!');
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_URL}/api/portal/documents`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+
+                const data = await response.json();
+                const list = document.getElementById('docList');
+
+                if (!data.documents || data.documents.length === 0) {
+                    list.innerHTML = '<li class="doc-item">No documents yet. Upload files or scrape websites above.</li>';
+                    return;
+                }
+
+                list.innerHTML = data.documents.map(d => `
+                    <li class="doc-item">
+                        <div class="doc-info">
+                            <h4>${escapeHtml(d.filename)}</h4>
+                            <span>ID: ${d.id} | Chunks: ${d.chunk_count || 0} | <span class="status-badge status-${d.status}">${d.status}</span></span>
+                        </div>
+                        <div class="doc-actions">
+                            <button class="btn-danger btn-sm" onclick="deleteDocument('${d.id}')">Delete</button>
+                        </div>
+                    </li>
+                `).join('');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function uploadFiles(files) {
+            if (!files || files.length === 0) return;
+
+            const status = document.getElementById('uploadStatus');
+            const fileCount = files.length;
+
+            if (fileCount > 10) {
+                status.innerHTML = '<p class="error">Maximum 10 files at once</p>';
+                return;
+            }
+
+            status.innerHTML = `<p style="color: #666;">Uploading ${fileCount} file(s)...</p>`;
+
+            // Use batch endpoint for multiple files
+            if (fileCount > 1) {
+                const formData = new FormData();
+                for (const file of files) {
+                    formData.append('files', file);
+                }
+
+                try {
+                    const response = await fetch(`${API_URL}/api/portal/documents/upload-batch`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${apiKey}` },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.detail || 'Upload failed');
+                    }
+
+                    // Get document IDs for polling
+                    const uploadedDocs = data.results.filter(r => r.status === 'success' && r.id);
+
+                    if (uploadedDocs.length > 0) {
+                        status.innerHTML = `<p style="color: #666;"><span class="spinner"></span> Processing ${uploadedDocs.length} document(s)...</p>`;
+                        await pollDocumentsStatus(uploadedDocs.map(d => ({id: d.id, filename: d.filename})), status);
+                    }
+
+                    const failedResults = data.results.filter(r => r.status === 'failed');
+                    if (failedResults.length > 0) {
+                        let html = status.innerHTML;
+                        html += '<ul style="color: #e74c3c; font-size: 14px; margin-top: 8px;">';
+                        failedResults.forEach(r => {
+                            html += `<li>${escapeHtml(r.filename)}: ${escapeHtml(r.error)}</li>`;
+                        });
+                        html += '</ul>';
+                        status.innerHTML = html;
+                    }
+
+                    loadDocuments();
+                    loadDashboard();
+                } catch (e) {
+                    status.innerHTML = `<p class="error">Error: ${e.message}</p>`;
+                }
+            } else {
+                // Single file - use original endpoint
+                const file = files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch(`${API_URL}/api/portal/documents/upload`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${apiKey}` },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.detail || 'Upload failed');
+                    }
+
+                    // Start polling for document status
+                    status.innerHTML = `<p style="color: #666;"><span class="spinner"></span> Processing: ${escapeHtml(data.filename)}...</p>`;
+                    await pollDocumentStatus(data.id, data.filename, status);
+
+                    loadDocuments();
+                    loadDashboard();
+                } catch (e) {
+                    status.innerHTML = `<p class="error">Error: ${e.message}</p>`;
+                }
+            }
+
+            // Clear the file input
+            document.getElementById('fileInput').value = '';
+        }
+
+        async function pollDocumentStatus(docId, filename, statusEl) {
+            const maxAttempts = 120; // 2 minutes max
+            const pollInterval = 1000; // 1 second
+
+            for (let i = 0; i < maxAttempts; i++) {
+                try {
+                    const response = await fetch(`${API_URL}/api/portal/documents/${docId}/status`, {
+                        headers: { 'Authorization': `Bearer ${apiKey}` }
+                    });
+
+                    if (!response.ok) continue;
+
+                    const data = await response.json();
+
+                    if (data.status === 'ready') {
+                        statusEl.innerHTML = `<p class="success">Processed: ${escapeHtml(filename)} (${data.chunk_count} chunks)</p>`;
+                        return;
+                    } else if (data.status === 'failed') {
+                        statusEl.innerHTML = `<p class="error">Processing failed: ${escapeHtml(filename)}</p>`;
+                        return;
+                    }
+
+                    // Still processing - update status
+                    statusEl.innerHTML = `<p style="color: #666;"><span class="spinner"></span> Processing: ${escapeHtml(filename)}... (${i + 1}s)</p>`;
+
+                } catch (e) {
+                    console.error('Polling error:', e);
+                }
+
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+
+            // Timeout - but document might still be processing
+            statusEl.innerHTML = `<p style="color: #f39c12;">Processing in background: ${escapeHtml(filename)}. Refresh page to see status.</p>`;
+        }
+
+        async function pollDocumentsStatus(docs, statusEl) {
+            const maxAttempts = 120;
+            const pollInterval = 1000;
+            const pending = new Set(docs.map(d => d.id));
+            const results = {};
+
+            for (let i = 0; i < maxAttempts && pending.size > 0; i++) {
+                for (const doc of docs) {
+                    if (!pending.has(doc.id)) continue;
+
+                    try {
+                        const response = await fetch(`${API_URL}/api/portal/documents/${doc.id}/status`, {
+                            headers: { 'Authorization': `Bearer ${apiKey}` }
+                        });
+
+                        if (!response.ok) continue;
+
+                        const data = await response.json();
+
+                        if (data.status === 'ready' || data.status === 'failed') {
+                            pending.delete(doc.id);
+                            results[doc.id] = data;
+                        }
+                    } catch (e) {
+                        console.error('Polling error:', e);
+                    }
+                }
+
+                if (pending.size > 0) {
+                    statusEl.innerHTML = `<p style="color: #666;"><span class="spinner"></span> Processing ${pending.size} of ${docs.length} document(s)... (${i + 1}s)</p>`;
+                    await new Promise(resolve => setTimeout(resolve, pollInterval));
+                }
+            }
+
+            // Show final results
+            let html = '';
+            let successCount = 0;
+            for (const doc of docs) {
+                const result = results[doc.id];
+                if (result && result.status === 'ready') {
+                    successCount++;
+                }
+            }
+            html = `<p class="success">Processed ${successCount} of ${docs.length} documents</p>`;
+            statusEl.innerHTML = html;
+        }
+
+        async function scrapeUrl() {
+            const url = document.getElementById('scrapeUrl').value;
+            const scrapeType = document.getElementById('scrapeType').value;
+            const status = document.getElementById('scrapeStatus');
+
+            if (!url) return;
+
+            status.innerHTML = '<p style="color: #666;">Scraping...</p>';
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/documents/scrape`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        scrape_type: scrapeType,
+                        max_pages: 10
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Scraping failed');
+                }
+
+                status.innerHTML = `<p class="success">Scraped ${data.pages_processed} pages</p>`;
+                document.getElementById('scrapeUrl').value = '';
+                loadDocuments();
+                loadDashboard();
+            } catch (e) {
+                status.innerHTML = `<p class="error">Error: ${e.message}</p>`;
+            }
+        }
+
+        async function deleteDocument(docId) {
+            if (!confirm('Delete this document?')) return;
+
+            try {
+                await fetch(`${API_URL}/api/portal/documents/${docId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                loadDocuments();
+                loadDashboard();
+            } catch (e) {
+                alert('Delete failed: ' + e.message);
+            }
+        }
+
+        function showCreateWidgetModal() {
+            document.getElementById('systemPrompt').value = DEFAULT_GUARDRAILS;
+            document.getElementById('createWidgetModal').classList.add('active');
+        }
+
+        async function createWidget(event) {
+            event.preventDefault();
+
+            const data = {
+                name: document.getElementById('widgetName').value,
+                chatbot_name: document.getElementById('chatbotName').value,
+                welcome_message: document.getElementById('welcomeMessage').value,
+                system_prompt: document.getElementById('systemPrompt').value,
+                model: document.getElementById('widgetModel').value,
+                widget_color: document.getElementById('widgetColor').value,
+                require_jwt: false
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/widgets`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail);
+                }
+
+                closeModal('createWidgetModal');
+                loadWidgets();
+                loadDashboard();
+            } catch (e) {
+                alert('Create failed: ' + e.message);
+            }
+        }
+
+        async function showEditWidgetModal(widgetId) {
+            try {
+                const response = await fetch(`${API_URL}/api/portal/widgets/${widgetId}`, {
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
+                });
+                const w = await response.json();
+
+                document.getElementById('editWidgetId').value = w.id;
+                document.getElementById('editWidgetName').value = w.name;
+                document.getElementById('editChatbotName').value = w.chatbot_name;
+                document.getElementById('editWelcomeMessage').value = w.welcome_message;
+                document.getElementById('editSystemPrompt').value = w.system_prompt || '';
+                document.getElementById('editWidgetModel').value = w.model || 'gemini-2.0-flash-001';
+                document.getElementById('editWidgetColor').value = w.widget_color;
+                document.getElementById('editDocumentIds').value = (w.document_ids || []).join(',');
+
+                document.getElementById('editWidgetModal').classList.add('active');
+            } catch (e) {
+                alert('Failed to load widget');
+            }
+        }
+
+        async function saveWidget(event) {
+            event.preventDefault();
+
+            const widgetId = document.getElementById('editWidgetId').value;
+            const docIds = document.getElementById('editDocumentIds').value;
+
+            const data = {
+                name: document.getElementById('editWidgetName').value,
+                chatbot_name: document.getElementById('editChatbotName').value,
+                welcome_message: document.getElementById('editWelcomeMessage').value,
+                system_prompt: document.getElementById('editSystemPrompt').value,
+                model: document.getElementById('editWidgetModel').value,
+                widget_color: document.getElementById('editWidgetColor').value,
+                document_ids: docIds ? docIds.split(',').map(s => s.trim()).filter(s => s) : []
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/api/portal/widgets/${widgetId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail);
+                }
+
+                closeModal('editWidgetModal');
+                loadWidgets();
+            } catch (e) {
+                alert('Save failed: ' + e.message);
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close modal on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) closeModal(this.id);
+            });
+        });
+
+        // Drag and drop
+        const uploadZone = document.getElementById('uploadZone');
+        if (uploadZone) {
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    uploadFiles(e.dataTransfer.files);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

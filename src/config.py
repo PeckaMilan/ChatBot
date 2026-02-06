@@ -38,6 +38,21 @@ class Settings(BaseSettings):
     # Rate limiting
     rate_limit_per_minute: int = 60
 
+    # JWT Configuration
+    jwt_secret_key: str = ""
+    jwt_algorithm: str = "HS256"
+    jwt_expire_hours: int = 24
+
+    # Admin authentication
+    admin_api_token: str = ""
+
+    # Public API URL (for widget embed code)
+    public_api_url: str = "https://chatbot-api-182382115587.europe-west1.run.app"
+
+    # Stripe billing (optional)
+    stripe_api_key: str = ""
+    stripe_webhook_secret: str = ""
+
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"

@@ -79,15 +79,24 @@ class DocumentProcessor:
         Returns:
             List of chunk dicts with text and metadata
         """
+        if not text or not text.strip():
+            return []
+
         chunks = self.splitter.split_text(text)
-        return [
-            {
-                "text": chunk,
-                "chunk_index": idx,
-                "page_number": self._detect_page_number(chunk),
-            }
-            for idx, chunk in enumerate(chunks)
-        ]
+
+        # Filter out empty chunks and build result
+        result = []
+        idx = 0
+        for chunk in chunks:
+            if chunk and chunk.strip() and len(chunk.strip()) >= 10:
+                result.append({
+                    "text": chunk.strip(),
+                    "chunk_index": idx,
+                    "page_number": self._detect_page_number(chunk),
+                })
+                idx += 1
+
+        return result
 
     def _detect_page_number(self, chunk: str) -> int | None:
         """Try to detect page number from chunk content."""

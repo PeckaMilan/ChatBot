@@ -1,38 +1,35 @@
 # Technical Plan
 
-## Status: IN PROGRESS 🚧
+## Status: DEPLOYED ✅
 
-> This plan is created AFTER business requirements are approved.
-> See BUSINESS.md for business context.
-
----
-
-## Current Iteration: 🛴 Koloběžka (MVP)
-
-**Goal:** Fungující chatbot pro vlastní web s upload dokumentů a RAG
+> Multi-tenant ChatBot SaaS Platform - ChatBase alternative
+> Deployed at: https://chatbot-api-182382115587.europe-west1.run.app
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Cloud Run Service                        │
-│  ┌───────────────┐  ┌─────────────────┐  ┌──────────────┐  │
-│  │  Admin Panel  │  │    Chat API     │  │ Widget API   │  │
-│  │  /admin/*     │  │  /api/chat/*    │  │ /api/widget  │  │
-│  └───────┬───────┘  └────────┬────────┘  └──────┬───────┘  │
-│          │                   │                   │          │
-│          └───────────┬───────┴───────────────────┘          │
-│                      ▼                                       │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              Shared Services Layer                   │    │
-│  │  • Document Processor (PDF, DOCX, TXT)              │    │
-│  │  • Embedding Generator (Gemini)                      │    │
-│  │  • RAG Pipeline (retrieval + generation)            │    │
-│  │  • Conversation Memory                               │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     Cloud Run Service                            │
+│  ┌───────────────┐  ┌─────────────────┐  ┌──────────────────┐  │
+│  │ Admin Portal  │  │ Customer Portal │  │   Widget Chat    │  │
+│  │ /api/admin/*  │  │  /api/portal/*  │  │ /api/chat/widget │  │
+│  └───────┬───────┘  └────────┬────────┘  └────────┬─────────┘  │
+│          │                   │                     │            │
+│          └───────────────────┼─────────────────────┘            │
+│                              ▼                                   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                  Shared Services Layer                    │   │
+│  │  • Document Processor (PDF, DOCX, TXT)                   │   │
+│  │  • Web Scraper (single page, sitemap)                    │   │
+│  │  • Embedding Generator (Gemini text-embedding-004)       │   │
+│  │  • RAG Pipeline (retrieval + generation)                 │   │
+│  │  • Conversation Memory                                    │   │
+│  │  • Analytics Service                                      │   │
+│  │  • Usage & Billing Service                               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
                               │
          ┌────────────────────┼────────────────────┐
          ▼                    ▼                    ▼
@@ -42,246 +39,228 @@
    └──────────┘        └───────────┘        └───────────┘
 ```
 
-### Architecture Decision Records
-
-| ADR | Decision | Rationale |
-|-----|----------|-----------|
-| ADR-001 | Firestore + in-memory vectors | Zero infra, MVP fast, migrate to Vertex AI later |
-| ADR-002 | Python + FastAPI | Best AI/ML ecosystem, mature Gemini SDK |
-| ADR-003 | Single Cloud Run service | Simpler deployment, shared resources |
-
 ---
 
 ## Tech Stack
 
-| Component | Technology | Version |
-|-----------|------------|---------|
-| **Runtime** | Python | 3.12 |
-| **Framework** | FastAPI | 0.109+ |
-| **LLM** | Google Gemini | gemini-2.0-flash |
-| **Embeddings** | Gemini text-embedding-004 | 768 dim |
-| **Database** | Firestore | - |
-| **Storage** | Cloud Storage | - |
-| **Auth** | Firebase Auth | - |
-| **Hosting** | Cloud Run | 2GB/2CPU |
-| **Doc Processing** | PyMuPDF, python-docx | - |
+| Component | Technology |
+|-----------|------------|
+| **Runtime** | Python 3.12 |
+| **Framework** | FastAPI |
+| **LLM** | Gemini 2.0 Flash / Pro |
+| **Embeddings** | text-embedding-004 (768 dim) |
+| **Database** | Firestore |
+| **Storage** | Cloud Storage |
+| **Auth** | API Keys (SHA256 hashed) |
+| **Hosting** | Cloud Run |
 
 ---
 
-## Project Structure
+## Multi-Tenant Data Model
 
 ```
-chatbot-platform/
-├── src/
-│   ├── main.py                   # FastAPI entrypoint
-│   ├── config.py                 # Environment configuration
-│   ├── core/                     # Shared clients
-│   │   ├── firebase.py
-│   │   ├── firestore.py
-│   │   ├── storage.py
-│   │   └── gemini.py
-│   ├── features/
-│   │   ├── auth/                 # Firebase Auth
-│   │   ├── documents/            # Upload, processing, embeddings
-│   │   ├── chat/                 # RAG pipeline, memory
-│   │   ├── widget/               # Embeddable widget config
-│   │   └── admin/                # Admin panel API
-│   └── utils/
-│       ├── language.py           # Auto-detection
-│       └── validation.py
-├── static/
-│   └── widget/
-│       ├── chatbot-widget.js     # Embeddable script
-│       └── chatbot-widget.css
-├── tests/
-├── Dockerfile
-├── requirements.txt
-└── .env.example
-```
+customers/{customer_id}
+├── email, company_name
+├── subscription_tier: free | starter | professional | enterprise
+├── status: active | suspended
+└── monthly limits (messages, documents, scrapes)
 
----
+customers/{customer_id}/api_keys/{key_id}
+├── name, key_hash (SHA256)
+├── is_active, created_at
 
-## Data Models (Firestore)
+widgets/{widget_id}
+├── customer_id
+├── name, chatbot_name, welcome_message
+├── system_prompt (guardrails)
+├── model: gemini-2.0-flash-001 | gemini-2.0-pro-exp-02-05 | ...
+├── widget_color, allowed_domains
+├── document_ids[]
+├── require_jwt, jwt_secret
 
-```
 documents/{doc_id}
-├── user_id: string
-├── filename: string
-├── content_type: string
-├── storage_path: string
-├── status: "pending" | "processing" | "ready" | "failed"
-├── chunk_count: number
-├── created_at: timestamp
-└── chunks/{chunk_id}
-    ├── text: string
-    ├── embedding: array[768]
-    ├── page_number: number
-    └── chunk_index: number
+├── customer_id
+├── filename, storage_path
+├── status: pending | processing | ready | failed
+├── chunk_count
+└── chunks subcollection
 
-conversations/{conv_id}
-├── session_id: string
-├── document_ids: array
-├── created_at: timestamp
-└── messages/{msg_id}
-    ├── role: "user" | "assistant"
-    ├── content: string
-    ├── sources: array
-    └── created_at: timestamp
+analytics_events/{event_id}
+├── widget_id, conversation_id, session_id
+├── role, message_preview, message_length
+├── response_time_ms, language, timestamp
 
-settings/{user_id}
-├── chatbot_name: string
-├── welcome_message: string
-├── system_prompt: string
-└── widget_color: string
+usage/{usage_id}
+├── customer_id, widget_id, billing_period
+├── usage_type: chat_message | document_upload | web_scrape
+├── input_tokens, output_tokens, estimated_cost_usd
 ```
 
 ---
 
-## Tasks - Koloběžka (MVP)
+## API Endpoints
 
-### Phase 1: Project Setup (Foundation) ✅
-- [x] **T1.1** Inicializace Python projektu (pyproject.toml, requirements.txt)
-- [x] **T1.2** Struktura složek dle návrhu
-- [ ] **T1.3** GCP projekt setup (Firestore, Storage, enable APIs) *[user action]*
-- [ ] **T1.4** Firebase Auth konfigurace *[user action]*
-- [x] **T1.5** Environment variables (.env.example, config.py)
-- [x] **T1.6** FastAPI základní setup (main.py, health endpoint)
-- [x] **T1.7** Dockerfile + local docker-compose
+### Admin Portal (`/api/admin/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /stats | Platform-wide statistics |
+| GET | /customers | List customers |
+| POST | /customers | Create customer |
+| GET | /customers/{id} | Customer details |
+| PATCH | /customers/{id} | Update customer |
+| POST | /customers/{id}/create-api-key | Create API key |
 
-### Phase 2: Core Clients ✅
-- [x] **T2.1** Firestore client wrapper
-- [x] **T2.2** Cloud Storage client wrapper
-- [x] **T2.3** Gemini API client (chat + embeddings)
-- [ ] **T2.4** Firebase Auth middleware *[later - MVP can work without]*
+### Customer Portal (`/api/portal/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /dashboard | Dashboard overview |
+| GET/POST | /widgets | Widget CRUD |
+| GET | /widgets/{id}/embed-code | Get embed code |
+| POST | /documents/upload | Upload document (async processing) |
+| POST | /documents/upload-batch | Upload multiple documents (max 10) |
+| GET | /documents/{id}/status | Check document processing status |
+| POST | /documents/scrape | Scrape URL |
+| GET | /conversations | List conversations |
+| GET | /analytics/overview | All-time stats |
+| GET | /analytics/daily-usage | Daily trends |
+| GET | /analytics/widgets | Per-widget stats |
+| GET | /analytics/top-questions | Popular questions |
+| GET | /analytics/export | Export analytics as CSV |
 
-### Phase 3: Document Processing ✅
-- [x] **T3.1** Document upload endpoint (multipart/form-data)
-- [x] **T3.2** PDF text extraction (PyMuPDF)
-- [x] **T3.3** DOCX text extraction (python-docx)
-- [x] **T3.4** TXT handling
-- [x] **T3.5** Text chunking (RecursiveCharacterTextSplitter)
-- [x] **T3.6** Embedding generation (batch)
-- [x] **T3.7** Store chunks + embeddings in Firestore
-- [x] **T3.8** Document status tracking
-
-### Phase 4: RAG Pipeline ✅
-- [x] **T4.1** Vector similarity search (cosine, in-memory)
-- [x] **T4.2** Retrieval service (top-k chunks)
-- [x] **T4.3** Prompt construction (system + context + query)
-- [x] **T4.4** Gemini chat completion
-- [x] **T4.5** Language auto-detection (langdetect)
-- [x] **T4.6** Response formatting
-
-### Phase 5: Conversation Memory ✅
-- [x] **T5.1** Session ID generation
-- [x] **T5.2** Conversation CRUD (Firestore)
-- [x] **T5.3** Message history retrieval (last N messages)
-- [x] **T5.4** Context window management
-
-### Phase 6: Chat API ✅
-- [x] **T6.1** POST /api/chat endpoint
-- [x] **T6.2** POST /api/widget/{widget_id}/chat endpoint
-- [ ] **T6.3** GET /api/conversations/{id} endpoint *[optional for MVP]*
-- [x] **T6.4** CORS configuration for widget
-
-### Phase 7: Embeddable Widget ✅
-- [x] **T7.1** Widget JavaScript (vanilla JS, IIFE)
-- [x] **T7.2** Widget CSS (scoped, bubble UI)
-- [x] **T7.3** Widget config endpoint
-- [x] **T7.4** Session persistence (localStorage)
-- [x] **T7.5** Static file serving
-
-### Phase 8: Admin Panel ✅
-- [x] **T8.1** Document list endpoint
-- [x] **T8.2** Document delete endpoint
-- [x] **T8.3** Settings CRUD endpoints
-- [ ] **T8.4** Basic HTML admin UI *[optional for MVP - API only]*
-
-### Phase 9: Deployment
-- [ ] **T9.1** Cloud Run deployment (gcloud run deploy)
-- [ ] **T9.2** Environment secrets (Secret Manager)
-- [ ] **T9.3** Custom domain (optional)
-- [ ] **T9.4** GitHub Actions CI/CD
-
-### Phase 10: Testing & Polish
-- [ ] **T10.1** Unit tests (document processor, embeddings)
-- [ ] **T10.2** Integration tests (chat API)
-- [ ] **T10.3** Manual E2E test na vlastním webu
-- [ ] **T10.4** Error handling + logging
+### Chat API (`/api/chat/*`)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | / | Direct chat (no widget) |
+| POST | /widget/{widget_id} | Widget chat with RAG |
+| POST | /widget/{widget_id}/stream | Streaming chat (SSE) |
+| POST | /widget/{widget_id}/feedback | Submit feedback (thumbs up/down) |
 
 ---
 
-## API Contracts
+## Customer Portal Features
 
-### POST /api/chat
-```json
-// Request
-{
-  "message": "Jak funguje produkt X?",
-  "session_id": "abc123",
-  "document_ids": ["doc1", "doc2"]
-}
+### Dashboard
+- Messages used/remaining
+- Widget count
+- Document count
+- Usage bar
 
-// Response
-{
-  "message": "Produkt X funguje tak, že...",
-  "sources": [{"chunk_id": "c1", "text": "...", "score": 0.92}],
-  "session_id": "abc123",
-  "language": "cs"
-}
+### Analytics Tab
+- All-time message count
+- Monthly message count
+- Total conversations
+- Average response time
+- Usage trend chart (30d/90d/360d/All)
+- Widget performance comparison
+- Top questions list
+
+### Widgets Tab
+- Create/edit/delete widgets
+- Configure: name, color, welcome message
+- Set guardrails (system prompt)
+- Select AI model
+- Assign documents
+
+### Knowledge Base Tab
+- Upload documents (PDF, DOCX, TXT, MD) - up to 50MB
+- Batch upload (up to 10 files at once)
+- Async processing with progress indicator
+- Scrape URLs (single page or sitemap)
+- Document list with chunk count
+
+### Widget Setup Tab
+- Embed code generation
+- JWT identity verification setup
+- Allowed domains configuration
+
+---
+
+## Widget Features
+
+### Streaming Responses
+- Real-time text streaming via Server-Sent Events (SSE)
+- Chunks appear as they are generated
+- Fallback to regular mode if streaming fails
+
+### User Feedback
+- Thumbs up/down buttons after each assistant message
+- Feedback stored in Firestore `feedback` collection
+- Linked to session_id and message_id
+
+### Dark Mode
+- Toggle button in widget header
+- CSS-only dark theme
+- Can be enabled by default via config: `darkMode: true`
+
+### Configuration Options
+```javascript
+ChatbotWidget.init({
+  widgetId: 'your-widget-id',
+  apiUrl: 'https://chatbot-api-xxx.run.app',
+  primaryColor: '#007bff',
+  title: 'Chat',
+  welcomeMessage: 'Hello!',
+  placeholder: 'Type a message...',
+  streaming: true,      // Enable streaming (default: true)
+  darkMode: false,      // Start in dark mode
+  autoOpen: false,      // Auto-open chat window
+  userToken: null,      // JWT for identity verification
+});
 ```
 
-### POST /api/documents
+---
+
+## Subscription Tiers
+
+| Tier | Messages/mo | Documents | Widgets | Scrapes |
+|------|-------------|-----------|---------|---------|
+| Free | 100 | 5 | 1 | 5 |
+| Starter | 1,000 | 25 | 3 | 20 |
+| Professional | 10,000 | 100 | 10 | 100 |
+| Enterprise | Unlimited | 500 | 50 | 500 |
+
+---
+
+## Gemini Models
+
+| Model | Use Case | Input $/1M | Output $/1M |
+|-------|----------|------------|-------------|
+| gemini-2.0-flash-001 | Fast, cost-effective | $0.075 | $0.30 |
+| gemini-2.0-pro-exp-02-05 | More capable | $1.25 | $5.00 |
+| gemini-1.5-pro-002 | Balanced | $1.25 | $5.00 |
+| gemini-1.5-flash-002 | Legacy fast | $0.075 | $0.30 |
+
+---
+
+## Deployed Customers
+
+### 1. Vladni Realita (StateOS)
+- Widget ID: `Qb9aKBWroHpvYNX1POFz`
+- Documents: Government programs (ANO, SPD, Motoriste)
+- Deployed on: vladnirealita.cz
+
+### 2. Ponehodova Pece
+- Widget ID: `ls0Si9wuw2gbatGla3nW`
+- Documents: Traffic laws, insurance info, CSSZ
+- API Key: `cb_live_oMfP9TuH21R2gBTHUoFrLSKPB1qAnLJblQiN7wrMtRk`
+
+---
+
+## URLs
+
+- **API**: https://chatbot-api-182382115587.europe-west1.run.app
+- **Customer Portal**: https://chatbot-api-182382115587.europe-west1.run.app/static/portal/index.html
+- **Widget JS**: https://chatbot-api-182382115587.europe-west1.run.app/static/widget/chatbot-widget.js
+
+---
+
+## Environment Variables
+
 ```
-Content-Type: multipart/form-data
-file: <binary>
+GCP_PROJECT_ID=chatbot-platform-2026
+GCP_REGION=europe-west1
+GOOGLE_APPLICATION_CREDENTIALS=...
+GCS_BUCKET_NAME=chatbot-platform-2026-documents
+ADMIN_API_TOKEN=<secret>
+PUBLIC_API_URL=https://chatbot-api-182382115587.europe-west1.run.app
 ```
-
-### GET /api/documents
-```json
-{
-  "documents": [
-    {"id": "doc1", "filename": "manual.pdf", "status": "ready", "chunks": 42}
-  ]
-}
-```
-
----
-
-## Cost Estimate (MVP)
-
-| Service | Monthly (low traffic) |
-|---------|-----------------------|
-| Cloud Run | ~$5-20 |
-| Firestore | ~$3-5 |
-| Cloud Storage | ~$1 |
-| Gemini API | ~$1-5 |
-| **Total** | **~$10-30** |
-
----
-
-## Risks & Mitigations
-
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Gemini rate limits | High | Implement retry + exponential backoff |
-| Large PDF processing | Medium | Async processing, max file size limit |
-| Cold start latency | Medium | Min instances = 1 for production |
-| Vector search slow at scale | Medium | Migration path to Vertex AI Vector Search |
-
----
-
-## Success Criteria (MVP Done When)
-
-- [ ] Upload PDF → zpracuje → odpovídá na dotazy
-- [ ] Widget embed script funguje na testovacím webu
-- [ ] Konverzace si pamatuje kontext
-- [ ] Admin panel umožňuje správu dokumentů
-- [ ] Deployed na Cloud Run
-
----
-
-## Sign-off
-
-- [x] Human approved (2026-02-03)
-- [x] Ready for development (/start)

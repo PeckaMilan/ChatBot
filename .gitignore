@@ -44,7 +44,16 @@ service-account*.json
 .coverage
 htmlcov/
 .pytest_cache/
+test-*.js
+test-results/
 
 # Uploads
 uploads/
 temp/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Local experiments
+lego/
