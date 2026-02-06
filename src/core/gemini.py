@@ -14,9 +14,11 @@ class GeminiClient:
     _instance: "GeminiClient | None" = None
     _model: GenerativeModel | None = None
     _initialized: bool = False
+    _current_location: str | None = None
 
     # Configuration - use settings or default
     REGION = "europe-west1"
+    GLOBAL_REGION = "us-central1"  # For preview models not yet in europe-west1
 
     @property
     def project_id(self) -> str:
@@ -34,12 +36,20 @@ class GeminiClient:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def _ensure_initialized(self) -> None:
-        """Initialize Vertex AI if not already done."""
-        if not self._initialized:
+    def _get_model_location(self, model_id: str) -> str:
+        """Get the appropriate Vertex AI region for a model."""
+        if model_id.startswith("gemini-3"):
+            return self.GLOBAL_REGION
+        return self.REGION
+
+    def _ensure_initialized(self, location: str | None = None) -> None:
+        """Initialize Vertex AI, switching region if needed."""
+        target_location = location or self.REGION
+        if not self._initialized or self._current_location != target_location:
             try:
-                vertexai.init(project=self.project_id, location=self.REGION)
+                vertexai.init(project=self.project_id, location=target_location)
                 self._initialized = True
+                self._current_location = target_location
             except Exception as e:
                 raise RuntimeError(f"Vertex AI initialization failed: {e}")
 
@@ -72,15 +82,17 @@ class GeminiClient:
         Returns:
             Model's response text
         """
-        self._ensure_initialized()
+        # Use specified model or default
+        chat_model = model_id or self.CHAT_MODEL
+        location = self._get_model_location(chat_model)
+        self._ensure_initialized(location)
+
+        print(f"[GEMINI] Model={chat_model} Location={location}")
 
         # Build system instruction
         system_instruction = system_prompt or "You are a helpful assistant."
         if context:
             system_instruction += f"\n\nUse the following context to answer questions:\n\n{context}"
-
-        # Use specified model or default
-        chat_model = model_id or self.CHAT_MODEL
 
         # Create model with system instruction
         model = GenerativeModel(
@@ -122,15 +134,15 @@ class GeminiClient:
 
         Yields chunks of text as they are generated.
         """
-        self._ensure_initialized()
+        # Use specified model or default
+        chat_model = model_id or self.CHAT_MODEL
+        location = self._get_model_location(chat_model)
+        self._ensure_initialized(location)
 
         # Build system instruction
         system_instruction = system_prompt or "You are a helpful assistant."
         if context:
             system_instruction += f"\n\nUse the following context to answer questions:\n\n{context}"
-
-        # Use specified model or default
-        chat_model = model_id or self.CHAT_MODEL
 
         # Create model with system instruction
         model = GenerativeModel(
@@ -174,7 +186,7 @@ class GeminiClient:
         """
         from vertexai.language_models import TextEmbeddingModel
 
-        self._ensure_initialized()
+        self._ensure_initialized(self.REGION)
 
         model = TextEmbeddingModel.from_pretrained("text-embedding-004")
         embeddings = model.get_embeddings([text])
@@ -196,7 +208,7 @@ class GeminiClient:
 
         logger = logging.getLogger(__name__)
 
-        self._ensure_initialized()
+        self._ensure_initialized(self.REGION)
 
         if not texts:
             return []

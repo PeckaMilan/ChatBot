@@ -90,6 +90,24 @@
       return div.innerHTML;
     },
 
+    renderMarkdown: function(text) {
+      if (!text) return '';
+      let html = this.escapeHtml(text);
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      html = html.replace(/^### (.+)$/gm, '<h4 style="margin:6px 0 2px;font-size:1em;font-weight:600">$1</h4>');
+      html = html.replace(/^## (.+)$/gm, '<h3 style="margin:6px 0 2px;font-size:1.05em;font-weight:600">$1</h3>');
+      html = html.replace(/^# (.+)$/gm, '<h2 style="margin:6px 0 2px;font-size:1.1em;font-weight:600">$1</h2>');
+      html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+      html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+      html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul style="margin:4px 0;padding-left:18px">$1</ul>');
+      html = html.replace(/\n/g, '<br>');
+      html = html.replace(/<br><ul/g, '<ul');
+      html = html.replace(/<\/ul><br>/g, '</ul>');
+      html = html.replace(/<\/li><br><li>/g, '</li><li>');
+      return html;
+    },
+
     injectStyles: function() {
       if (document.getElementById('chatbot-widget-styles')) return;
 
@@ -454,9 +472,10 @@
 
       if (role === 'user') {
         messageEl.style.background = this.config.primaryColor;
+        messageEl.textContent = content;
+      } else {
+        messageEl.innerHTML = this.renderMarkdown(content);
       }
-
-      messageEl.textContent = content;
       wrapperEl.appendChild(messageEl);
 
       // Add feedback buttons for assistant messages (except welcome)
@@ -513,6 +532,9 @@
       const streamingEl = document.getElementById('chatbot-streaming');
 
       if (streamingWrapper && streamingEl) {
+        // Render markdown now that streaming is complete
+        streamingEl.innerHTML = this.renderMarkdown(content);
+
         const messageId = 'msg_' + Math.random().toString(36).slice(2, 11);
         streamingEl.dataset.messageId = messageId;
         streamingEl.removeAttribute('id');
