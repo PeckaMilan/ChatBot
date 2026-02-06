@@ -1266,12 +1266,17 @@ If asked about forbidden topics, respond:
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
             try {
+                const playgroundPrompt = document.getElementById('playgroundSystemPrompt').value;
+                const playgroundModel = document.getElementById('playgroundModel').value;
+
                 const response = await fetch(`${API_URL}/api/chat/widget/${currentPlaygroundWidget.id}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         message: message,
-                        session_id: playgroundSessionId
+                        session_id: playgroundSessionId,
+                        system_prompt: playgroundPrompt || undefined,
+                        model_id: playgroundModel || undefined
                     })
                 });
 

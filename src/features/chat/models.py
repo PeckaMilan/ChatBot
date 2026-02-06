@@ -9,6 +9,8 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=4000)
     session_id: str | None = None
     document_ids: list[str] | None = None
+    system_prompt: str | None = None  # Override widget's system prompt
+    model_id: str | None = None  # Override widget's model
 
 
 class SourceReference(BaseModel):

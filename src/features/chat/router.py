@@ -110,9 +110,11 @@ async def widget_chat(widget_id: str, request: ChatRequest):
                 detail=reason,
             )
 
-    # Get system prompt and model from widget config
-    system_prompt = widget.get("system_prompt") or "You are a helpful assistant."
-    model_id = widget.get("model") or "gemini-3-flash-preview"
+    # Get system prompt and model - request overrides widget config (playground)
+    system_prompt = request.system_prompt or widget.get("system_prompt") or "You are a helpful assistant."
+    model_id = request.model_id or widget.get("model") or "gemini-3-flash-preview"
+
+    print(f"[CHAT] Widget={widget_id} Model={model_id} SystemPrompt={system_prompt[:80]}...")
 
     try:
         service = get_chat_service()
@@ -163,10 +165,12 @@ async def widget_chat_stream(widget_id: str, request: ChatRequest):
                 detail=reason,
             )
 
-    # Get config
-    system_prompt = widget.get("system_prompt") or "You are a helpful assistant."
-    model_id = widget.get("model") or "gemini-3-flash-preview"
+    # Get config - request overrides widget config (playground)
+    system_prompt = request.system_prompt or widget.get("system_prompt") or "You are a helpful assistant."
+    model_id = request.model_id or widget.get("model") or "gemini-3-flash-preview"
     document_ids = request.document_ids or widget.get("document_ids", [])
+
+    print(f"[STREAM] Widget={widget_id} Model={model_id} SystemPrompt={system_prompt[:80]}...")
 
     # Get retrieval service for RAG
     retrieval = get_retrieval_service()
