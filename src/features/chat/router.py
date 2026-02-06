@@ -112,7 +112,7 @@ async def widget_chat(widget_id: str, request: ChatRequest):
 
     # Get system prompt and model from widget config
     system_prompt = widget.get("system_prompt") or "You are a helpful assistant."
-    model_id = widget.get("model") or "gemini-2.0-flash-001"
+    model_id = widget.get("model") or "gemini-3-flash-preview"
 
     try:
         service = get_chat_service()
@@ -165,7 +165,7 @@ async def widget_chat_stream(widget_id: str, request: ChatRequest):
 
     # Get config
     system_prompt = widget.get("system_prompt") or "You are a helpful assistant."
-    model_id = widget.get("model") or "gemini-2.0-flash-001"
+    model_id = widget.get("model") or "gemini-3-flash-preview"
     document_ids = request.document_ids or widget.get("document_ids", [])
 
     # Get retrieval service for RAG

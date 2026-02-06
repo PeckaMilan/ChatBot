@@ -25,7 +25,7 @@ class GeminiClient:
         return settings.google_cloud_project or "chatbot-platform-2026"
 
     # Model configuration - using Vertex AI models
-    CHAT_MODEL = "gemini-2.0-flash-001"
+    CHAT_MODEL = "gemini-3-flash-preview"
     EMBEDDING_MODEL = "text-embedding-004"
     EMBEDDING_DIMENSIONS = 768
 

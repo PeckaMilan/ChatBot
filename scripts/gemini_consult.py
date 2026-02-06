@@ -8,8 +8,13 @@ escalating to the human only when deviating from the plan.
 import os
 import sys
 import json
+import time
 from pathlib import Path
 from datetime import datetime
+
+# Retry configuration
+MAX_RETRIES = 5
+RETRY_DELAY_SECONDS = 60  # 1 minute between retries (5 min total max wait)
 
 # Try to load .env file
 try:
@@ -160,28 +165,42 @@ def consult(question: str, include_plan: bool = True) -> str:
         )
     )
 
-    try:
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                temperature=0.4,  # Lower for more consistent decisions
-                max_output_tokens=2048
+    # Retry loop for overloaded model
+    last_error = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    temperature=0.4,  # Lower for more consistent decisions
+                    max_output_tokens=2048
+                )
             )
-        )
 
-        response_text = response.text
+            response_text = response.text
 
-        # Update history (store without plan to save space)
-        history.append({"role": "user", "text": question})
-        history.append({"role": "model", "text": response_text})
-        save_history(history)
+            # Update history (store without plan to save space)
+            history.append({"role": "user", "text": question})
+            history.append({"role": "model", "text": response_text})
+            save_history(history)
 
-        return response_text
+            return response_text
 
-    except Exception as e:
-        return f"ERROR: Gemini API call failed: {str(e)}"
+        except Exception as e:
+            last_error = str(e)
+            # Check if it's an overloaded/unavailable error
+            if "503" in last_error or "overloaded" in last_error.lower() or "unavailable" in last_error.lower():
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = RETRY_DELAY_SECONDS * (attempt + 1)  # Progressive: 60s, 120s, 180s...
+                    print(f"Model overloaded. Retry {attempt + 1}/{MAX_RETRIES} in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+            # For other errors, don't retry
+            break
+
+    return f"ERROR: Gemini API call failed after {MAX_RETRIES} retries: {last_error}"
 
 
 def clear_history():

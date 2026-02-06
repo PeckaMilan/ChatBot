@@ -800,10 +800,10 @@
                             <div class="form-group">
                                 <label for="playgroundModel">AI Model</label>
                                 <select id="playgroundModel">
-                                    <option value="gemini-2.0-flash-001">Gemini 2.0 Flash (Fast)</option>
-                                    <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro (Capable)</option>
-                                    <option value="gemini-1.5-pro-002">Gemini 1.5 Pro</option>
-                                    <option value="gemini-1.5-flash-002">Gemini 1.5 Flash</option>
+                                    <option value="gemini-3-flash-preview">Gemini 3 Flash (Newest, Fast)</option>
+                                    <option value="gemini-3-pro-preview">Gemini 3 Pro (Newest, Most Capable)</option>
+                                    <option value="gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                                    <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro</option>
                                 </select>
                             </div>
 
@@ -966,10 +966,10 @@
                 <div class="form-group">
                     <label for="widgetModel">AI Model</label>
                     <select id="widgetModel">
-                        <option value="gemini-2.0-flash-001">Gemini 2.0 Flash (Fast, Cost-effective)</option>
-                        <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro (More Capable)</option>
-                        <option value="gemini-1.5-pro-002">Gemini 1.5 Pro</option>
-                        <option value="gemini-1.5-flash-002">Gemini 1.5 Flash</option>
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash (Newest, Fast)</option>
+                        <option value="gemini-3-pro-preview">Gemini 3 Pro (Newest, Most Capable)</option>
+                        <option value="gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                        <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1009,10 +1009,10 @@
                 <div class="form-group">
                     <label for="editWidgetModel">AI Model</label>
                     <select id="editWidgetModel">
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash (Newest, Fast)</option>
+                        <option value="gemini-3-pro-preview">Gemini 3 Pro (Newest, Most Capable)</option>
                         <option value="gemini-2.0-flash-001">Gemini 2.0 Flash</option>
                         <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro</option>
-                        <option value="gemini-1.5-pro-002">Gemini 1.5 Pro</option>
-                        <option value="gemini-1.5-flash-002">Gemini 1.5 Flash</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1195,7 +1195,7 @@ If asked about forbidden topics, respond:
                 <li class="widget-item">
                     <div class="widget-info">
                         <h4>${escapeHtml(w.name)}</h4>
-                        <span>Chatbot: ${escapeHtml(w.chatbot_name)} | Model: ${w.model || 'gemini-2.0-flash-001'} | ${w.is_active ? 'Active' : 'Inactive'}</span>
+                        <span>Chatbot: ${escapeHtml(w.chatbot_name)} | Model: ${w.model || 'gemini-3-flash-preview'} | ${w.is_active ? 'Active' : 'Inactive'}</span>
                     </div>
                     <div class="widget-actions">
                         <button class="btn-warning btn-sm" onclick="testWidget('${w.id}')">Test</button>
@@ -1228,8 +1228,8 @@ If asked about forbidden topics, respond:
             currentPlaygroundWidget = widget;
             playgroundSessionId = 'playground-' + Date.now();
 
-            document.getElementById('playgroundModel').value = widget.model || 'gemini-2.0-flash-001';
-            document.getElementById('playgroundSystemPrompt').value = widget.system_prompt || DEFAULT_GUARDRAILS;
+            document.getElementById('playgroundModel').value = widget.model || 'gemini-3-flash-preview';
+            document.getElementById('playgroundSystemPrompt').value = widget.system_prompt || '';
             document.getElementById('playgroundChatHeader').textContent = widget.chatbot_name || 'Chat Preview';
             document.getElementById('playgroundChatHeader').style.background = widget.widget_color || '#007bff';
 
@@ -2035,7 +2035,7 @@ window.ChatbotWidget.identify(token);`;
                 document.getElementById('editChatbotName').value = w.chatbot_name;
                 document.getElementById('editWelcomeMessage').value = w.welcome_message;
                 document.getElementById('editSystemPrompt').value = w.system_prompt || '';
-                document.getElementById('editWidgetModel').value = w.model || 'gemini-2.0-flash-001';
+                document.getElementById('editWidgetModel').value = w.model || 'gemini-3-flash-preview';
                 document.getElementById('editWidgetColor').value = w.widget_color;
                 document.getElementById('editDocumentIds').value = (w.document_ids || []).join(',');
 

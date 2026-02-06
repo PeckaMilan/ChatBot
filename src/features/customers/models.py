@@ -28,18 +28,18 @@ class CustomerStatus(str, Enum):
 class GeminiModel(str, Enum):
     """Available Gemini models."""
 
+    GEMINI_3_FLASH = "gemini-3-flash-preview"  # Newest, fast + capable
+    GEMINI_3_PRO = "gemini-3-pro-preview"  # Newest, most capable
     GEMINI_2_FLASH = "gemini-2.0-flash-001"  # Fast, cost-effective
     GEMINI_2_PRO = "gemini-2.0-pro-exp-02-05"  # More capable
-    GEMINI_15_PRO = "gemini-1.5-pro-002"  # Previous generation pro
-    GEMINI_15_FLASH = "gemini-1.5-flash-002"  # Previous generation fast
 
 
 # Model pricing (per 1M tokens)
 MODEL_PRICING = {
+    GeminiModel.GEMINI_3_FLASH: {"input": 0.15, "output": 0.60},
+    GeminiModel.GEMINI_3_PRO: {"input": 1.25, "output": 10.00},
     GeminiModel.GEMINI_2_FLASH: {"input": 0.075, "output": 0.30},
     GeminiModel.GEMINI_2_PRO: {"input": 1.25, "output": 5.00},
-    GeminiModel.GEMINI_15_PRO: {"input": 1.25, "output": 5.00},
-    GeminiModel.GEMINI_15_FLASH: {"input": 0.075, "output": 0.30},
 }
 
 
@@ -170,7 +170,7 @@ class Widget(BaseModel):
     logo_url: Optional[str] = None
 
     # AI Model selection
-    model: GeminiModel = GeminiModel.GEMINI_2_FLASH
+    model: GeminiModel = GeminiModel.GEMINI_3_FLASH
 
     # Branding
     show_powered_by: bool = True
@@ -197,7 +197,7 @@ class WidgetCreate(BaseModel):
     welcome_message: str = "Hello! How can I help you?"
     system_prompt: str = "You are a helpful assistant."
     widget_color: str = "#007bff"
-    model: GeminiModel = GeminiModel.GEMINI_2_FLASH
+    model: GeminiModel = GeminiModel.GEMINI_3_FLASH
     allowed_domains: list[str] = Field(default_factory=list)
     require_jwt: bool = False
 
@@ -227,8 +227,9 @@ class WidgetResponse(BaseModel):
     name: str
     chatbot_name: str
     welcome_message: str
+    system_prompt: str = "You are a helpful assistant."
     widget_color: str
-    model: str = "gemini-2.0-flash-001"
+    model: str = "gemini-3-flash-preview"
     show_powered_by: bool
     allowed_domains: list[str]
     document_ids: list[str]
