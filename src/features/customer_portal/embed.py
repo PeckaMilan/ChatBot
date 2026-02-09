@@ -14,6 +14,9 @@ def generate_embed_code(
 
     Returns dict with multiple embed options.
     """
+    chatbot_name = settings.get("chatbot_name", "Chat")
+    chatbot_name_escaped = chatbot_name.replace('"', '\\"')
+
     # Standard embed - config fetched dynamically from API
     standard_embed = f'''<script>
 (function(){{
