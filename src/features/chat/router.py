@@ -230,6 +230,29 @@ async def widget_chat_stream(widget_id: str, request: ChatRequest):
     )
 
 
+@router.get("/widget/{widget_id}/config")
+async def get_widget_config(widget_id: str):
+    """
+    Public endpoint to get widget display config.
+    No auth required - returns only non-sensitive display settings.
+    """
+    firestore = get_firestore_client()
+    widget = await firestore.get_widget(widget_id)
+
+    if not widget:
+        raise HTTPException(status_code=404, detail="Widget not found")
+
+    if not widget.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Widget is disabled")
+
+    return {
+        "chatbot_name": widget.get("chatbot_name", "Chat"),
+        "welcome_message": widget.get("welcome_message", "Hello! How can I help you?"),
+        "widget_color": widget.get("widget_color", "#007bff"),
+        "is_active": True,
+    }
+
+
 @router.post("/widget/{widget_id}/feedback")
 async def submit_feedback(widget_id: str, request: FeedbackRequest):
     """

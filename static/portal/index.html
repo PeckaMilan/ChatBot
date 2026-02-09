@@ -1990,13 +1990,19 @@ window.ChatbotWidget.identify(token);`;
         }
 
         async function deleteDocument(docId) {
-            if (!confirm('Delete this document?')) return;
+            if (!confirm('Delete this document and all its chunks?')) return;
 
             try {
-                await fetch(`${API_URL}/api/portal/documents/${docId}`, {
+                const response = await fetch(`${API_URL}/api/portal/documents/${docId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${apiKey}` }
                 });
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.detail || `Delete failed (${response.status})`);
+                }
+
                 loadDocuments();
                 loadDashboard();
             } catch (e) {

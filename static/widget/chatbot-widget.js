@@ -12,6 +12,7 @@
     darkMode: false,
 
     init: function(config) {
+      this._initConfig = config;
       this.config = {
         widgetId: config.widgetId || 'default',
         apiUrl: config.apiUrl || window.location.origin,
@@ -20,17 +21,12 @@
         title: config.title || 'Chat',
         welcomeMessage: config.welcomeMessage || 'Hello! How can I help you today?',
         placeholder: config.placeholder || 'Type a message...',
-        // JWT identity verification
         userToken: config.userToken || null,
-        // Customization
         poweredBy: config.poweredBy !== false,
         logoUrl: config.logoUrl || null,
-        // Behavior
         autoOpen: config.autoOpen || false,
         openDelay: config.openDelay || 0,
-        // Streaming
         streaming: config.streaming !== false,
-        // Dark mode
         darkMode: config.darkMode || false,
       };
 
@@ -42,9 +38,54 @@
       this.bindEvents();
       this.addWelcomeMessage();
 
-      // Auto-open if configured
       if (this.config.autoOpen) {
         setTimeout(() => this.toggleWindow(), this.config.openDelay);
+      }
+
+      // Fetch latest config from API and apply dynamic updates
+      this.fetchRemoteConfig();
+    },
+
+    fetchRemoteConfig: async function() {
+      try {
+        const response = await fetch(
+          `${this.config.apiUrl}/api/chat/widget/${this.config.widgetId}/config`
+        );
+        if (!response.ok) return;
+
+        const remote = await response.json();
+        const init = this._initConfig;
+
+        // Apply remote config only for fields NOT explicitly set in init()
+        const newTitle = init.title || remote.chatbot_name || this.config.title;
+        const newColor = init.primaryColor || remote.widget_color || this.config.primaryColor;
+        const newWelcome = init.welcomeMessage || remote.welcome_message || this.config.welcomeMessage;
+
+        const changed = newTitle !== this.config.title
+          || newColor !== this.config.primaryColor
+          || newWelcome !== this.config.welcomeMessage;
+
+        if (!changed) return;
+
+        this.config.title = newTitle;
+        this.config.primaryColor = newColor;
+        this.config.welcomeMessage = newWelcome;
+
+        // Update DOM
+        const header = document.getElementById('chatbot-header');
+        if (header) {
+          header.style.background = newColor;
+          header.querySelector('span').textContent = newTitle;
+        }
+        const toggle = document.getElementById('chatbot-toggle');
+        if (toggle) toggle.style.background = newColor;
+        const send = document.getElementById('chatbot-send');
+        if (send) send.style.background = newColor;
+        if (this.container) {
+          this.container.style.setProperty('--chatbot-primary', newColor);
+        }
+      } catch (e) {
+        // Silently fail - use config from init()
       }
     },
 

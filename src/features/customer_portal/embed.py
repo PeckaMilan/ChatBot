@@ -14,33 +14,16 @@ def generate_embed_code(
 
     Returns dict with multiple embed options.
     """
-    chatbot_name = settings.get("chatbot_name", "Chat")
-    welcome_message = settings.get("welcome_message", "Hello!")
-    widget_color = settings.get("widget_color", "#007bff")
-
-    # Escape strings for JS
-    chatbot_name_escaped = chatbot_name.replace('"', '\\"')
-    welcome_message_escaped = welcome_message.replace('"', '\\"')
-
-    # Standard embed (like ChatBase)
+    # Standard embed - config fetched dynamically from API
     standard_embed = f'''<script>
 (function(){{
-  if(!window.chatbotWidget||window.chatbotWidget("getState")!=="initialized"){{
-    window.chatbotWidget=(...args)=>{{
-      if(!window.chatbotWidget.q)window.chatbotWidget.q=[];
-      window.chatbotWidget.q.push(args);
-    }};
-  }}
   const script=document.createElement("script");
   script.src="{api_url}/static/widget/chatbot-widget.js";
   script.async=true;
   script.onload=function(){{
     ChatbotWidget.init({{
       widgetId:"{widget_id}",
-      apiUrl:"{api_url}",
-      title:"{chatbot_name_escaped}",
-      welcomeMessage:"{welcome_message_escaped}",
-      primaryColor:"{widget_color}"
+      apiUrl:"{api_url}"
     }});
   }};
   document.body.appendChild(script);
