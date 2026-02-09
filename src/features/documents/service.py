@@ -243,9 +243,14 @@ class DocumentService:
         """Delete document and its chunks."""
         doc = await self.firestore.get_document(doc_id)
         if doc:
-            # Delete from storage
-            await self.storage.delete_file(doc["storage_path"])
-            # Delete from Firestore
+            # Delete from GCS storage (skip for web scrapes which have URL paths)
+            storage_path = doc.get("storage_path", "")
+            if storage_path.startswith("gs://"):
+                try:
+                    await self.storage.delete_file(storage_path)
+                except Exception as e:
+                    print(f"[DELETE] Storage delete failed (continuing): {e}")
+            # Delete from Firestore (document + chunks)
             await self.firestore.delete_document(doc_id)
 
 
