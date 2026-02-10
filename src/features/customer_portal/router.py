@@ -4,12 +4,13 @@ import csv
 import io
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, HttpUrl
 
 from src.config import get_settings
 from src.core.firestore import FirestoreClient, get_firestore_client
+from src.core.rate_limiter import limiter
 from src.features.auth.dependencies import (
     AuthenticatedCustomer,
     get_current_customer,
@@ -43,7 +44,7 @@ SUPPORTED_TYPES = {
     "text/markdown": "md",
 }
 
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
 
 class ScrapeURLRequest(BaseModel):
@@ -67,12 +68,17 @@ async def get_dashboard(
     documents = await firestore.list_documents_for_customer(customer.customer_id)
     usage = await usage_service.get_current_usage(customer.customer_id)
 
+    # Get document limit from tier
+    limits = usage_service.get_tier_limits(customer.customer)
+    documents_limit = limits["monthly_document_limit"]
+
     return DashboardResponse(
         customer_id=customer.customer_id,
         company_name=customer.customer.get("company_name", ""),
         subscription_tier=customer.subscription_tier,
         widgets_count=len(widgets),
         documents_count=len(documents),
+        documents_limit=documents_limit,
         usage=usage,
     )
 
@@ -310,7 +316,9 @@ async def list_documents(
 
 
 @router.post("/documents/upload")
+@limiter.limit("10/minute")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     customer: AuthenticatedCustomer = Depends(get_current_customer),
     firestore: FirestoreClient = Depends(get_firestore_client),
@@ -339,7 +347,7 @@ async def upload_document(
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
-            detail="File too large. Maximum size: 50MB",
+            detail="File too large. Maximum size: 20MB",
         )
 
     try:
@@ -435,7 +443,7 @@ async def upload_documents_batch(
             content = await file.read()
             if len(content) > MAX_FILE_SIZE:
                 result["status"] = "failed"
-                result["error"] = f"File too large ({len(content) // (1024*1024)}MB). Max: 50MB"
+                result["error"] = f"File too large ({len(content) // (1024*1024)}MB). Max: 20MB"
                 results.append(result)
                 continue
 
@@ -477,7 +485,11 @@ async def delete_document(
     """Delete a document."""
     doc = await firestore.get_document(doc_id)
 
-    if not doc or doc.get("customer_id") != customer.customer_id:
+    if not doc:
+        # Already deleted - return success for idempotency
+        return {"status": "deleted"}
+
+    if doc.get("customer_id") != customer.customer_id:
         raise HTTPException(status_code=404, detail="Document not found")
 
     service = get_document_service()
@@ -487,8 +499,10 @@ async def delete_document(
 
 
 @router.post("/documents/scrape")
+@limiter.limit("5/minute")
 async def scrape_url(
-    request: ScrapeURLRequest,
+    request: Request,
+    body: ScrapeURLRequest,
     customer: AuthenticatedCustomer = Depends(get_current_customer),
     usage_service: UsageService = Depends(get_usage_service),
 ):
@@ -506,9 +520,9 @@ async def scrape_url(
     try:
         service = get_scraper_service()
         scrape_request = ScrapeRequest(
-            url=request.url,
-            scrape_type=request.scrape_type,
-            max_pages=min(request.max_pages, 50),  # Cap at 50 pages
+            url=body.url,
+            scrape_type=body.scrape_type,
+            max_pages=min(body.max_pages, 50),  # Cap at 50 pages
         )
         result = await service.scrape_and_ingest_for_customer(
             request=scrape_request,

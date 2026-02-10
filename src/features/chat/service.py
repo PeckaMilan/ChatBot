@@ -11,6 +11,7 @@ from src.utils.language import detect_language
 from .memory import ConversationMemory, get_conversation_memory
 from .models import ChatResponse, SourceReference
 from .retrieval import RetrievalService, get_retrieval_service
+from .sanitizer import detect_pii, redact_pii
 
 
 class ChatService:
@@ -68,6 +69,10 @@ class ChatService:
         # Detect language
         language = detect_language(message)
 
+        # PII detection and redaction
+        pii_matches = detect_pii(message)
+        sanitized_message = redact_pii(message) if pii_matches else message
+
         # Retrieve relevant chunks
         chunks = await self.retrieval.search(
             query=message,
@@ -88,9 +93,9 @@ class ChatService:
         # Track response time
         start_time = time.time()
 
-        # Generate response
+        # Generate response (use sanitized message for LLM)
         response_text = await self.gemini.chat(
-            message=message,
+            message=sanitized_message,
             system_prompt=final_prompt,
             context=context if context else None,
             history=history if history else None,
@@ -142,10 +147,20 @@ class ChatService:
             content=message,
         )
 
+        # Look up document filenames for source enrichment
+        doc_ids = list({c["document_id"] for c in chunks[:3] if c.get("document_id")})
+        doc_filenames: dict[str, str] = {}
+        for doc_id in doc_ids:
+            doc = await self.retrieval.firestore.get_document(doc_id)
+            if doc:
+                doc_filenames[doc_id] = doc.get("filename", "Document")
+
         # Prepare sources for response
         sources = [
             SourceReference(
                 chunk_id=chunk["id"],
+                document_id=chunk.get("document_id"),
+                filename=doc_filenames.get(chunk.get("document_id", ""), "Document"),
                 text=chunk["text"][:200] + "..." if len(chunk["text"]) > 200 else chunk["text"],
                 score=chunk["score"],
                 page_number=chunk.get("page_number"),
@@ -165,6 +180,7 @@ class ChatService:
             sources=sources,
             session_id=session_id,
             language=language,
+            pii_warning=bool(pii_matches),
         )
 
 

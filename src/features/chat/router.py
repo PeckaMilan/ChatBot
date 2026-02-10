@@ -1,14 +1,18 @@
 """Chat API endpoints."""
 
-from fastapi import APIRouter, HTTPException, status
+import json
+
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from src.core.firestore import get_firestore_client
 from src.core.gemini import get_gemini_client
+from src.core.rate_limiter import limiter
 from src.features.billing.service import get_usage_service, UsageLimitExceededError
 
 from .models import ChatRequest, ChatResponse
+from .sanitizer import detect_pii, redact_pii
 from .service import get_chat_service
 from .retrieval import get_retrieval_service
 
@@ -24,7 +28,8 @@ class FeedbackRequest(BaseModel):
 
 
 @router.post("/", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+@limiter.limit("30/minute")
+async def chat(request: Request, body: ChatRequest):
     """
     Send a message and get a response.
 
@@ -34,9 +39,9 @@ async def chat(request: ChatRequest):
     try:
         service = get_chat_service()
         response = await service.chat(
-            message=request.message,
-            session_id=request.session_id,
-            document_ids=request.document_ids,
+            message=body.message,
+            session_id=body.session_id,
+            document_ids=body.document_ids,
         )
         return response
     except Exception as e:
@@ -66,7 +71,8 @@ PRAVIDLA:
 
 
 @router.post("/widget/{widget_id}", response_model=ChatResponse)
-async def widget_chat(widget_id: str, request: ChatRequest):
+@limiter.limit("30/minute")
+async def widget_chat(request: Request, widget_id: str, body: ChatRequest):
     """
     Widget-specific chat endpoint.
 
@@ -81,9 +87,9 @@ async def widget_chat(widget_id: str, request: ChatRequest):
         try:
             service = get_chat_service()
             response = await service.chat(
-                message=request.message,
-                session_id=request.session_id,
-                document_ids=request.document_ids,
+                message=body.message,
+                session_id=body.session_id,
+                document_ids=body.document_ids,
                 system_prompt=STATEOS_SYSTEM_PROMPT,
                 widget_id=widget_id,
             )
@@ -111,17 +117,17 @@ async def widget_chat(widget_id: str, request: ChatRequest):
             )
 
     # Get system prompt and model - request overrides widget config (playground)
-    system_prompt = request.system_prompt or widget.get("system_prompt") or "You are a helpful assistant."
-    model_id = request.model_id or widget.get("model") or "gemini-3-flash-preview"
+    system_prompt = body.system_prompt or widget.get("system_prompt") or "You are a helpful assistant."
+    model_id = body.model_id or widget.get("model") or "gemini-3-flash-preview"
 
     print(f"[CHAT] Widget={widget_id} Model={model_id} SystemPrompt={system_prompt[:80]}...")
 
     try:
         service = get_chat_service()
         response = await service.chat(
-            message=request.message,
-            session_id=request.session_id,
-            document_ids=request.document_ids or widget.get("document_ids", []),
+            message=body.message,
+            session_id=body.session_id,
+            document_ids=body.document_ids or widget.get("document_ids", []),
             system_prompt=system_prompt,
             widget_id=widget_id,
             customer_id=customer_id,
@@ -135,14 +141,14 @@ async def widget_chat(widget_id: str, request: ChatRequest):
 
 
 @router.post("/widget/{widget_id}/stream")
-async def widget_chat_stream(widget_id: str, request: ChatRequest):
+@limiter.limit("30/minute")
+async def widget_chat_stream(request: Request, widget_id: str, body: ChatRequest):
     """
     Streaming chat endpoint for widgets.
 
     Returns Server-Sent Events (SSE) with chunks of the response.
+    Includes source citations and PII redaction.
     """
-    import json
-
     firestore = get_firestore_client()
     usage_service = get_usage_service()
 
@@ -166,16 +172,29 @@ async def widget_chat_stream(widget_id: str, request: ChatRequest):
             )
 
     # Get config - request overrides widget config (playground)
-    system_prompt = request.system_prompt or widget.get("system_prompt") or "You are a helpful assistant."
-    model_id = request.model_id or widget.get("model") or "gemini-3-flash-preview"
-    document_ids = request.document_ids or widget.get("document_ids", [])
+    system_prompt = body.system_prompt or widget.get("system_prompt") or "You are a helpful assistant."
+    model_id = body.model_id or widget.get("model") or "gemini-3-flash-preview"
+    document_ids = body.document_ids or widget.get("document_ids", [])
 
     print(f"[STREAM] Widget={widget_id} Model={model_id} SystemPrompt={system_prompt[:80]}...")
 
+    # PII detection and redaction
+    pii_matches = detect_pii(body.message)
+    sanitized_message = redact_pii(body.message) if pii_matches else body.message
+
     # Get retrieval service for RAG
     retrieval = get_retrieval_service()
-    chunks = await retrieval.search(query=request.message, document_ids=document_ids, top_k=5)
+    chunks = await retrieval.search(query=body.message, document_ids=document_ids, top_k=5)
     context = retrieval.build_context(chunks)
+
+    # Look up document filenames for top sources
+    top_chunks = chunks[:3]
+    doc_ids = list({c["document_id"] for c in top_chunks if c.get("document_id")})
+    doc_filenames: dict[str, str] = {}
+    for doc_id in doc_ids:
+        doc = await firestore.get_document(doc_id)
+        if doc:
+            doc_filenames[doc_id] = doc.get("filename", "Document")
 
     async def generate():
         gemini = get_gemini_client()
@@ -183,7 +202,7 @@ async def widget_chat_stream(widget_id: str, request: ChatRequest):
 
         try:
             async for chunk in gemini.chat_stream(
-                message=request.message,
+                message=sanitized_message,
                 system_prompt=system_prompt,
                 context=context if context else None,
                 model_id=model_id,
@@ -191,21 +210,33 @@ async def widget_chat_stream(widget_id: str, request: ChatRequest):
                 full_response += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
 
-            # Send done signal with sources
+            # Build enriched sources with filenames
             sources = [
                 {
                     "chunk_id": c["id"],
+                    "document_id": c.get("document_id"),
+                    "filename": doc_filenames.get(c.get("document_id", ""), "Document"),
                     "text": c["text"][:200] + "..." if len(c["text"]) > 200 else c["text"],
                     "score": c["score"],
+                    "page_number": c.get("page_number"),
                 }
-                for c in chunks[:3]
+                for c in top_chunks
             ]
-            yield f"data: {json.dumps({'done': True, 'sources': sources})}\n\n"
+
+            # Send done signal with sources and PII warning
+            done_data = {
+                "done": True,
+                "sources": sources,
+            }
+            if pii_matches:
+                done_data["pii_warning"] = True
+
+            yield f"data: {json.dumps(done_data)}\n\n"
 
             # Record usage (fire and forget)
             if customer_id:
                 try:
-                    input_tokens = len(request.message) // 4 + len(context or "") // 4
+                    input_tokens = len(body.message) // 4 + len(context or "") // 4
                     output_tokens = len(full_response) // 4
                     await usage_service.record_chat_usage(
                         customer_id=customer_id,
@@ -231,7 +262,8 @@ async def widget_chat_stream(widget_id: str, request: ChatRequest):
 
 
 @router.get("/widget/{widget_id}/config")
-async def get_widget_config(widget_id: str):
+@limiter.limit("60/minute")
+async def get_widget_config(request: Request, widget_id: str):
     """
     Public endpoint to get widget display config.
     No auth required - returns only non-sensitive display settings.
@@ -254,7 +286,8 @@ async def get_widget_config(widget_id: str):
 
 
 @router.post("/widget/{widget_id}/feedback")
-async def submit_feedback(widget_id: str, request: FeedbackRequest):
+@limiter.limit("10/minute")
+async def submit_feedback(request: Request, widget_id: str, body: FeedbackRequest):
     """
     Submit feedback (thumbs up/down) for a chat response.
     """
@@ -271,10 +304,10 @@ async def submit_feedback(widget_id: str, request: FeedbackRequest):
     feedback_data = {
         "widget_id": widget_id,
         "customer_id": widget.get("customer_id"),
-        "session_id": request.session_id,
-        "message_id": request.message_id,
-        "feedback": request.feedback,  # "positive" or "negative"
-        "comment": request.comment,
+        "session_id": body.session_id,
+        "message_id": body.message_id,
+        "feedback": body.feedback,  # "positive" or "negative"
+        "comment": body.comment,
         "created_at": datetime.utcnow(),
     }
 

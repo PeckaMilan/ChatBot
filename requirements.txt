@@ -30,5 +30,11 @@ python-dotenv>=1.0.0
 numpy>=1.26.0
 langdetect>=1.0.9
 
+# Rate limiting
+slowapi>=0.1.9
+
+# Hybrid search
+rank-bm25>=0.2.2
+
 # Authentication
 PyJWT>=2.8.0

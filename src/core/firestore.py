@@ -80,12 +80,15 @@ class FirestoreClient:
         return [doc.to_dict() for doc in docs]
 
     async def delete_document(self, doc_id: str) -> None:
-        """Delete document and all its chunks."""
+        """Delete document and all its chunks using batch deletes."""
         doc_ref = self.db.collection("documents").document(doc_id)
-        # Delete all chunks first
-        chunks = doc_ref.collection("chunks").stream()
-        for chunk in chunks:
-            chunk.reference.delete()
+        # Delete chunks in small batches (embeddings make docs large)
+        chunks = list(doc_ref.collection("chunks").stream())
+        for i in range(0, len(chunks), 20):
+            batch = self.db.batch()
+            for chunk in chunks[i:i + 20]:
+                batch.delete(chunk.reference)
+            batch.commit()
         # Delete document
         doc_ref.delete()
 

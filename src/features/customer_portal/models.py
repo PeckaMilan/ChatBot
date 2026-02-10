@@ -17,6 +17,7 @@ class DashboardResponse(BaseModel):
     subscription_tier: str
     widgets_count: int
     documents_count: int
+    documents_limit: int
     usage: MonthlyUsageSummary
 
 

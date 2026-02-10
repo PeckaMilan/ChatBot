@@ -17,6 +17,8 @@ class SourceReference(BaseModel):
     """Reference to source document chunk."""
 
     chunk_id: str
+    document_id: str | None = None
+    filename: str | None = None
     text: str
     score: float
     page_number: int | None = None
@@ -29,6 +31,7 @@ class ChatResponse(BaseModel):
     sources: list[SourceReference]
     session_id: str
     language: str
+    pii_warning: bool = False
 
 
 class ConversationMessage(BaseModel):

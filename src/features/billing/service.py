@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from src.core.firestore import FirestoreClient, get_firestore_client
+from src.features.customers.models import SubscriptionTier, TIER_LIMITS
 
 from .models import UsageType, MonthlyUsageSummary
 
@@ -113,6 +114,26 @@ class UsageService:
         }
         await self.firestore.record_usage(usage_data)
 
+    def get_tier_limits(self, customer: dict | None) -> dict:
+        """Get limits based on customer's subscription tier."""
+        if not customer:
+            return TIER_LIMITS[SubscriptionTier.FREE]
+
+        tier_str = customer.get("subscription_tier", "free")
+        try:
+            tier = SubscriptionTier(tier_str)
+        except ValueError:
+            tier = SubscriptionTier.FREE
+
+        tier_defaults = TIER_LIMITS.get(tier, TIER_LIMITS[SubscriptionTier.FREE])
+
+        # Customer-level overrides take precedence over tier defaults
+        return {
+            "monthly_message_limit": customer.get("monthly_message_limit", tier_defaults["monthly_message_limit"]),
+            "monthly_document_limit": customer.get("monthly_document_limit", tier_defaults["monthly_document_limit"]),
+            "monthly_scrape_limit": customer.get("monthly_scrape_limit", tier_defaults["monthly_scrape_limit"]),
+        }
+
     async def get_current_usage(
         self,
         customer_id: str,
@@ -121,12 +142,10 @@ class UsageService:
         billing_period = datetime.utcnow().strftime("%Y-%m")
         usage = await self.firestore.get_monthly_usage(customer_id, billing_period)
 
-        # Get customer limits
+        # Get customer limits from tier
         customer = await self.firestore.get_customer(customer_id)
-        if not customer:
-            message_limit = 1000
-        else:
-            message_limit = customer.get("monthly_message_limit", 1000)
+        limits = self.get_tier_limits(customer)
+        message_limit = limits["monthly_message_limit"]
 
         messages_used = usage.get("total_messages", 0)
 
@@ -160,17 +179,18 @@ class UsageService:
         if usage_type == "message" and usage.at_limit:
             return False, "Monthly message limit reached"
 
-        # Get customer for other limits
+        # Get tier-based limits
         customer = await self.firestore.get_customer(customer_id)
-        if customer:
-            doc_limit = customer.get("monthly_document_limit", 5)
-            scrape_limit = customer.get("monthly_scrape_limit", 10)
+        limits = self.get_tier_limits(customer)
 
-            if usage_type == "document" and usage.total_documents >= doc_limit:
-                return False, "Monthly document upload limit reached"
+        doc_limit = limits["monthly_document_limit"]
+        scrape_limit = limits["monthly_scrape_limit"]
 
-            if usage_type == "scrape" and usage.total_scrapes >= scrape_limit:
-                return False, "Monthly web scrape limit reached"
+        if usage_type == "document" and usage.total_documents >= doc_limit:
+            return False, f"Monthly document upload limit ({doc_limit}) reached. Upgrade your plan for more."
+
+        if usage_type == "scrape" and usage.total_scrapes >= scrape_limit:
+            return False, f"Monthly web scrape limit ({scrape_limit}) reached. Upgrade your plan for more."
 
         return True, "OK"
 
