@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     app_port: int = 8080
 
     # CORS
-    cors_origins: str = "http://localhost:3000,http://localhost:8080"
+    cors_origins: str = "*"
 
     # Rate limiting
     rate_limit_per_minute: int = 60
