@@ -51,14 +51,14 @@
       this.injectStyles();
       this.createWidget();
       this.bindEvents();
-      this.addWelcomeMessage();
 
-      if (this.config.autoOpen) {
-        setTimeout(() => this.toggleWindow(), this.config.openDelay);
-      }
-
-      // Fetch latest config from API and apply dynamic updates
-      this.fetchRemoteConfig();
+      // Fetch remote config first, then show welcome message
+      this.fetchRemoteConfig().then(() => {
+        this.addWelcomeMessage();
+        if (this.config.autoOpen) {
+          setTimeout(() => this.toggleWindow(), this.config.openDelay);
+        }
+      });
     },
 
     fetchRemoteConfig: async function() {
@@ -74,7 +74,7 @@
         // Apply remote config only for fields NOT explicitly set in init()
         const newTitle = init.title || remote.chatbot_name || this.config.title;
         const newColor = init.primaryColor || remote.widget_color || this.config.primaryColor;
-        const newWelcome = init.welcomeMessage || remote.welcome_message || this.config.welcomeMessage;
+        const newWelcome = remote.welcome_message || init.welcomeMessage || this.config.welcomeMessage;
 
         const changed = newTitle !== this.config.title
           || newColor !== this.config.primaryColor
@@ -855,7 +855,7 @@
       const safePlaceholder = this.escapeHtml(this.config.placeholder);
 
       const poweredByHtml = this.config.poweredBy
-        ? '<div class="cb-powered-by">Powered by <a href="https://chatbot-api-182382115587.europe-west1.run.app" target="_blank" rel="noopener">ChatBot</a></div>'
+        ? '<div class="cb-powered-by">Powered by <a href="https://www.dwx.cz" target="_blank" rel="noopener">DWX</a></div>'
         : '';
 
       this.container.innerHTML = `

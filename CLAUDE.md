@@ -13,16 +13,22 @@ Multi-tenant ChatBot SaaS Platform - ChatBase alternative.
 - **RAG**: Upload documents or scrape URLs for knowledge base
 - **Gemini Models**: Select from Flash/Pro models per widget
 - **Analytics**: Usage trends, widget performance, top questions
-- **Embed Widget**: JavaScript snippet for any website
+- **Embed Widget**: JavaScript snippet for any website (CORS: all origins)
 - **Guardrails**: Custom system prompts per widget
+- **Rate Limiting**: Per-endpoint rate limits via slowapi
+- **PII Detection**: Automatic detection and redaction of personal data
+- **Citation Sources**: Color-coded source references in chat responses
+- **Widget Document Selector**: Auto-assign uploads to widgets from Knowledge Base
+- **Professional UI**: Sidebar navigation portal, glassmorphism widget, dark mode
 
 ## Tech Stack
 
-- Python 3.12 + FastAPI
-- Gemini 2.0 (LLM + Embeddings)
+- Python 3.12 + FastAPI + slowapi (rate limiting)
+- Gemini 2.0/3.0 (LLM + Embeddings)
 - Firestore (database + vectors)
 - Cloud Storage (documents)
 - Cloud Run (hosting)
+- google-genai SDK (chat)
 
 ## Quick Start
 

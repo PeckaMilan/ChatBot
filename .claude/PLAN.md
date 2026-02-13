@@ -139,6 +139,14 @@ usage/{usage_id}
 
 ## Customer Portal Features
 
+### UI Design
+- **Sidebar navigation** (260px, dark gradient) with SVG icons
+- **CSS design system** with `--p-*` custom properties (indigo primary #4f46e5)
+- **Toast notifications** replace all alert() calls (success/error/warning/info)
+- **Modal animations** with backdrop blur and scale transitions
+- **Skeleton loading** states with shimmer animation
+- **Responsive** layout (sidebar collapses to hamburger on mobile <768px)
+
 ### Dashboard
 - Messages used/remaining
 - Widget count
@@ -162,8 +170,9 @@ usage/{usage_id}
 - Assign documents
 
 ### Knowledge Base Tab
-- Upload documents (PDF, DOCX, TXT, MD) - up to 50MB
+- Upload documents (PDF, DOCX, TXT, MD) - up to 20MB
 - Batch upload (up to 10 files at once)
+- **Widget selector dropdown** - auto-assign uploaded/scraped docs to a widget
 - Async processing with progress indicator
 - Scrape URLs (single page or sitemap)
 - Document list with chunk count
@@ -189,24 +198,56 @@ usage/{usage_id}
 
 ### Dark Mode
 - Toggle button in widget header
-- CSS-only dark theme
-- Can be enabled by default via config: `darkMode: true`
+- CSS-only dark theme with `.cb-dark` class
+- Auto-detection via `prefers-color-scheme: dark` (default: `'auto'`)
+- Can be set explicitly via config: `darkMode: true` / `darkMode: false`
+
+### Remote Config Priority
+- Widget fetches config from `/api/chat/widget/{id}/config` on init
+- Remote `welcome_message` **overrides** embed code (portal is source of truth)
+- Remote `chatbot_name` and `widget_color` apply unless overridden in embed code
+- Config is loaded **before** welcome message is displayed
+
+### Branding
+- "Powered by DWX" footer with link to https://www.dwx.cz
+- Can be hidden per widget via `poweredBy: false` in embed config
 
 ### Configuration Options
 ```javascript
 ChatbotWidget.init({
   widgetId: 'your-widget-id',
   apiUrl: 'https://chatbot-api-xxx.run.app',
-  primaryColor: '#007bff',
+  primaryColor: '#667eea',  // Gradient header color
   title: 'Chat',
-  welcomeMessage: 'Hello!',
+  welcomeMessage: 'Hello!', // Overridden by portal config
   placeholder: 'Type a message...',
   streaming: true,      // Enable streaming (default: true)
-  darkMode: false,      // Start in dark mode
+  darkMode: 'auto',     // 'auto' | true | false
   autoOpen: false,      // Auto-open chat window
+  poweredBy: true,      // Show "Powered by DWX" footer
   userToken: null,      // JWT for identity verification
 });
 ```
+
+### Enterprise Features
+
+#### Rate Limiting
+- Per-endpoint limits via slowapi (e.g., 30/min for chat, 10/min for uploads)
+- Returns HTTP 429 with user-friendly message in widget
+
+#### PII Detection & Redaction
+- Detects emails, phone numbers, Czech birth numbers (rodne cislo), credit cards
+- `pii_warning: true` flag in response triggers warning banner in widget
+- Redaction available via `redact_pii()` utility
+
+#### Citation Sources
+- RAG responses include `sources[]` with title, score, snippet
+- Widget renders color-coded source cards: green (>70%), amber (50-70%), red (<50%)
+- Expandable snippets with similarity score badges
+
+#### CORS
+- Default: `*` (all origins) - required for embeddable widget
+- Configurable via `CORS_ORIGINS` environment variable
 
 ---
 
@@ -241,8 +282,9 @@ ChatbotWidget.init({
 
 ### 2. Ponehodova Pece
 - Widget ID: `ls0Si9wuw2gbatGla3nW`
-- Documents: Traffic laws, insurance info, CSSZ
+- Documents: Traffic laws, insurance info, CSSZ, psychosocial support
 - API Key: `cb_live_oMfP9TuH21R2gBTHUoFrLSKPB1qAnLJblQiN7wrMtRk`
+- Deployed on: ponehodovapece.cz
 
 ---
 
