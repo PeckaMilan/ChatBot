@@ -77,7 +77,7 @@ class ChatService:
         chunks = await self.retrieval.search(
             query=message,
             document_ids=document_ids or conversation.get("document_ids"),
-            top_k=5,
+            top_k=10,
         )
 
         # Build context from chunks

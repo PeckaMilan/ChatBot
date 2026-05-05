@@ -184,7 +184,7 @@ async def widget_chat_stream(request: Request, widget_id: str, body: ChatRequest
 
     # Get retrieval service for RAG
     retrieval = get_retrieval_service()
-    chunks = await retrieval.search(query=body.message, document_ids=document_ids, top_k=5)
+    chunks = await retrieval.search(query=body.message, document_ids=document_ids, top_k=10)
     context = retrieval.build_context(chunks)
 
     # Look up document filenames for top sources
