@@ -49,13 +49,13 @@
 - Total `widget.document_ids`: 333 (8 + 325)
 - Total chunks v RAG: ~origin chunks + 325 abstract chunks (každý dotaz teď má dual signál: laický abstract + formální rozsudek)
 
-**Production revision:** `chatbot-api-00052-rsv` (2026-05-05) s top_k=10 + max_output_tokens=4096. **Beze změny po Phase 4** — retrieval logic není závislá na abstract flagu, abstract chunky se zúčastňují cosine search like any other chunk.
+**Production revision:** `chatbot-api-00054-j68` (2026-05-06) s D-10 fix (build_context metadata header + system prompt NAZEV SOUDU klauzule). Předtím `chatbot-api-00052-rsv` (2026-05-05) s top_k=10 + max_output_tokens=4096.
 
 **Slabina ze 2026-05-05 ranní (vector score ~0.029 pro laické dotazy):** VYŘEŠENA Phase 4 a EMPIRICKY POTVRZENO 2026-05-05 evening (D-09). Abstract chunky vyhrávají vs web pages v RRF retrievalu, pokrytí judikátů v top-3 = 100 % (8/8 dotazů). Bez Phase 4 by se text-rozsudkové chunky do top-10 nedostaly vůbec.
 
 ## Next Steps
 
-- [x] ~~**Halucinace názvu soudu — D-10 fix**~~ — DONE 2026-05-06, commit `76a8d99`, deployed rev TBD. Viz D-10 pro full root cause + fix summary.
+- [x] ~~**Halucinace názvu soudu — D-10 fix**~~ — DONE 2026-05-06, commit `76a8d99` + `ad1f11f`, deployed rev `chatbot-api-00054-j68`. 3/3 produkčních smoke testů pass, žádná halucinace soudu. Viz D-10 pro full root cause + fix summary.
 - [x] ~~**Změřit přínos Phase 4** (P1)~~ — DONE 2026-05-05, viz D-09. Eval skript `scripts/eval_phase4_retrieval.py` zachován pro re-runs.
 - [x] ~~**Cleanup orphan staging instance**~~ — DONE 2026-05-05 evening, Board OK obdržen, `gcloud run services delete chatbot-api --project phoenix-staging-ea` úspěšný. Produkce v `chatbot-platform-2026` (rev 00052-rsv) ověřena nedotčená.
 - [ ] **Sledovat šum chunk** (P3): `ECLI_CZ_OSTA_2023_9.C.218.2021.1` se opakuje jako web_page kandidát napříč různými laickými dotazy v eval. Layer 1 fix (D-10) nyní propaguje metadata z parent doc do chunku — pokud OSTA má správný název soudu v metadata.soud, header bude korektní a LLM halucinaci neuvidí. Ověřit v prod smoke testech post-D-10 deployi. Pokud stále šum, zvážit re-chunking nebo blacklist.

@@ -106,3 +106,29 @@
   "notes": "Phase 4 done autonomously: chatbot-dev delegation → dry-run validation → full run 325/325 0 errors → idempotency verified → KB updated. Empirical retrieval-improvement measurement still pending."
 }
 ```
+
+## 2026-05-06
+
+### ChatBot — D-10 Court name hallucination fix
+- Smoke test produkčního widgetu odhalil halucinaci: model tvrdil "Okresní soud v Ostravě" pro source z `ECLI_CZ_OSSO_2021_...` (= Sokolov). Root cause: `build_context()` posílal Gemini pouze chunk text + `[Source N]` header, žádné metadata; abstract chunky končí jen `[ECLI: ...]`; LLM neumí ECLI location codes (OSSO, OSTA, OSOS, OSPH) → tipoval city.
+- CEO investigace identifikovala 2 vrstvy: (a) `firestore.get_all_chunks()` nepropaguje parent doc metadata do chunků; (b) `retrieval.build_context()` nemá metadata header.
+- Delegováno `chatbot-dev`: TDD workflow (3+ unit testy first), dual-layer fix, deploy + 3 smoke testy. Výsledek: 8/8 unit testů zelených, deploy rev `chatbot-api-00054-j68` (project `chatbot-platform-2026`, HR-01 dodrženo), 3/3 produkčních smoke testů bez halucinace.
+- Změny: `src/features/chat/retrieval.py` (`_build_source_header()` helper), Firestore client (metadata propagation z parent doc), widget `ls0Si9wuw2gbatGla3nW` system prompt (+289 znaků klauzule NAZEV SOUDU), `tests/unit/test_retrieval_build_context.py` (NEW).
+- Compliance s anti-patterns: AP-04 (žádná regex/prompt iterace, root cause-first diagnostika), HR-01 (deploy s explicitním `--project chatbot-platform-2026`), HR-02 (jen explicit files, echo session netknutá).
+- D-10 zapsán: PERMANENT.
+
+```json
+{
+  "eval_block": true,
+  "date": "2026-05-06",
+  "project": "ChatBot",
+  "session_id": "ad1f11f",
+  "pass_k": null,
+  "board_escalations": 0,
+  "anti_patterns_repeated": 0,
+  "avg_context_needed": null,
+  "stale_antipatterns_flagged": 0,
+  "reflexion_triggers": 0,
+  "notes": "Court name hallucination fix delivered same-session: smoke detect → root cause → dual-layer fix (data + prompt) → TDD → deploy → smoke verify. PENDING P2 \"OSTA šum\" task downgraded to verify-post-D-10."
+}
+```
