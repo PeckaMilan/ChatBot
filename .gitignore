@@ -57,3 +57,6 @@ package-lock.json
 
 # Local experiments
 lego/
+
+# Eval výstupy (obsahují produkční data, gitignore-d per TASK spec)
+eval_phase4_results.json

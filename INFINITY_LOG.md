@@ -35,3 +35,74 @@
   "notes": "First DECISIONS.md/INFINITY_LOG.md/PENDING.md for this project. Filter-tuning iteration loop (3 false-positive cycles) caught and broken via pivot to LLM classifier (AP-04 lesson)."
 }
 ```
+
+### ChatBot — Orphan staging cleanup (evening session)
+- Smazána Cloud Run service `chatbot-api` v projektu `phoenix-staging-ea` (vznikla při AP-05). `gcloud run services delete chatbot-api --region europe-west1 --project phoenix-staging-ea --quiet` → "Deleted service [chatbot-api]".
+- Produkce v `chatbot-platform-2026` ověřena: `chatbot-api-00052-rsv` stále aktivní na `chatbot-api-rxun7gaboa-ew.a.run.app`. Žádný impact.
+- AP-05 fully resolved. HR-01 (`--project chatbot-platform-2026` při deploy) zůstává aktivní jako prevence.
+
+```json
+{
+  "eval_block": true,
+  "date": "2026-05-06",
+  "project": "ChatBot",
+  "session_id": "phase4-eval+cleanup",
+  "pass_k": null,
+  "board_escalations": 1,
+  "anti_patterns_repeated": 0,
+  "avg_context_needed": null,
+  "stale_antipatterns_flagged": 0,
+  "reflexion_triggers": 0,
+  "notes": "Phase 4 empirically validated (D-09: 100% top-3 abstract coverage on 8 lay queries). Orphan staging service deleted with Board approval. PENDING.md cleared to 0 P1 — only P2 backlog remains. AP-01..AP-06 all <90d old, no decay flagging."
+}
+```
+
+### ChatBot — Phase 4 empirická validace (evening session)
+- Delegováno na `chatbot-dev`: nový read-only eval skript `scripts/eval_phase4_retrieval.py`. Volá produkční `RetrievalService` (cosine + BM25 RRF) lokálně proti Firestore, vrací top-10 chunků pro 8 typických laických dotazů s `is_abstract` flagem.
+- 8 dotazů × top_k=10 = 80 retrieved chunks. **66/80 (82.5 %) jsou abstract chunky.** **0/80 jsou raw judikát-text chunky.** Web pages doplňují zbytek.
+- Coverage: 8/8 dotazů má aspoň 1 abstract v top-3 (100 %). 8/8 dotazů má aspoň 1 abstract v top-10. **0/8 dotazů má raw judikát-text v top-10.**
+- avg RRF score: abstract 0.0242 vs web 0.0236 vs judikat_text 0.0 — abstrakty soutěží s web pages a vyhrávají. Bez Phase 4 by retrieval pro laické dotazy vůbec judikáty do kontextu nepřidal (jen text chunks rozsudku, které mají jiný stylistický registr než dotaz).
+- Nález k sledování: `ECLI_CZ_OSTA_2023_9.C.218.2021.1` opakovaně jako web_page kandidát (suspicious — judikát label, ale chová se jako web page) — P2 task.
+- D-09 zapsán: Phase 4 = success, empiricky potvrzeno.
+- AP-04 compliance: žádná iterace retrieval logic — jen měření, žádný tweak.
+
+```json
+{
+  "eval_block": true,
+  "date": "2026-05-05",
+  "project": "ChatBot",
+  "session_id": "phase4-eval",
+  "pass_k": null,
+  "board_escalations": 0,
+  "anti_patterns_repeated": 0,
+  "avg_context_needed": null,
+  "stale_antipatterns_flagged": 0,
+  "reflexion_triggers": 0,
+  "notes": "Phase 4 empirically validated: 100% top-3 abstract coverage for 8 lay queries, 0% raw judikat_text in top-10 (proves abstracts are the only path for judikat retrieval on lay queries). One suspicious chunk (OSTA_2023_9.C.218.2021.1) flagged for follow-up."
+}
+```
+
+### ChatBot — Phase 4: Lay-friendly abstrakty pro 325 judikátů (afternoon session)
+- Delegováno na `chatbot-dev`: nový skript `scripts/generate_judikat_abstracts.py` (Gemini 2.0 Flash, idempotentní, dry-run capable, statistiky).
+- Pre-flight `--dry-run --max 3`: 3 abstracts vygenerované, 0 writes, kvalita potvrzená (česky, konkrétní částky, ECLI citace, žádná hantýrka).
+- Full run (background, `tee` log): 325 judikátů zpracováno, 325 abstracts vygenerováno, **0 errors** (LLM/embed/write), avg 3.11s/doc, ~17 min wall time.
+- Idempotence ověřena (re-run --max 10 → all 10 already_had_abstract=10, generated=0).
+- Storage strategie (D-07/D-08): abstract jako další chunk v `documents/{doc_id}/chunks/`, `metadata.is_abstract=True`, `chunk_index=9000`. **NEUPDATUJE** `document.chunk_count`. Retrieval (`get_all_chunks` → cosine + BM25 RRF) abstrakty automaticky zahrne — žádná změna v `chat/retrieval.py` ani redeploy.
+- Compliance s anti-patterns: AP-04 (write-first prompt design, žádná iterace) ✓, AP-06 (`tee` v background) ✓.
+- **Nezměřeno empiricky.** Hypotéza, že abstracts zvedne retrieval shodu pro laické dotazy z ~0.029 na user-relevant level, je zatím neověřená. Next step: A/B test nebo ad-hoc dotazy proti produkčnímu widgetu.
+
+```json
+{
+  "eval_block": true,
+  "date": "2026-05-05",
+  "project": "ChatBot",
+  "session_id": "phase4-abstracts",
+  "pass_k": null,
+  "board_escalations": 0,
+  "anti_patterns_repeated": 0,
+  "avg_context_needed": null,
+  "stale_antipatterns_flagged": 0,
+  "reflexion_triggers": 0,
+  "notes": "Phase 4 done autonomously: chatbot-dev delegation → dry-run validation → full run 325/325 0 errors → idempotency verified → KB updated. Empirical retrieval-improvement measurement still pending."
+}
+```

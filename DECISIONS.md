@@ -31,6 +31,9 @@
 - **D-04** — System prompt widgetu nepřepsat, ale rozšířit. Existující prompt obsahuje doménovou expertízu (lovci nehod, ČKP/ČSSZ, metodika NS, kontakt 703 111 333) — nesmí se ztratit. Nový blok PRACE S JUDIKATUROU se appenduje na konec. **Status: PERMANENT** (2026-05-05)
 - **D-05** — `top_k` pro RAG retrieval zvýšen z 5 na 10 (pro `chat/service.py` i `chat/router.py` streaming). Větší pool kandidátů zlepšuje šanci, že se nějaký judikát dostane do kontextu i u laických dotazů. **Status: ACTIVE** (2026-05-05)
 - **D-06** — `max_output_tokens` v Gemini chatu zvýšen z 2048 na 4096 (oba volání: blocking + stream). Důvod: odpovědi byly oříznuté uprostřed (např. v telefonním čísle "+420"). **Status: ACTIVE** (2026-05-05)
+- **D-07** — Phase 4 abstrakty: pro každý judikát vygenerován 1 lay-friendly abstract (Gemini 2.0 Flash, ~200 slov, 3 pilíře: co se stalo / kolik soud přiznal / klíčový důvod, BEZ právní hantýrky, ECLI/JC citace na konci). Uložen jako další chunk v `documents/{doc_id}/chunks/` s `metadata.is_abstract=True` a `chunk_index=9000`. Embedding identický model jako rozsudkové chunks (Vertex AI 768-dim). Retrieval (`get_all_chunks` → cosine + BM25 RRF) automaticky abstract zahrne. Idempotence: chunk-level check `is_abstract==True`. **Status: ACTIVE** (2026-05-05)
+- **D-08** — Phase 4 storage strategie: NEUPDATOVAT `document.chunk_count` po přidání abstract chunku. Důvod: chunk_count byl historicky text-rozsudek count; míchání s abstract by ztěžovalo debugging. Abstract chunk má `chunk_index=9000` jako sentinel hodnotu, aby nekolidoval s 0..N-1 text-chunks. **Status: PERMANENT** (2026-05-05)
+- **D-09** — Phase 4 empiricky validována přes `scripts/eval_phase4_retrieval.py` (8 typických laických dotazů, top_k=10, retrieval přes BM25+vector RRF). Výsledky: 8/8 dotazů má abstract chunk v top-3, 0/8 raw judikát-text v top-10. Tj. **bez abstraktů by se judikáty do kontextu vůbec nedostaly** pro laické dotazy. avg RRF score abstract 0.0242 vs web 0.0236 — abstract chunky soutěží s web pages a vyhrávají. Phase 4 = success. **Status: PERMANENT** (2026-05-05)
 
 ## Current State
 
@@ -38,19 +41,22 @@
 
 **Jediný produkční bot:** widget ID `ls0Si9wuw2gbatGla3nW` ("Virtuální poradce po nehodě"), customer `R2e1hKaEcmQ2GIhThSQU`, embed na `https://www.ponehodovapece.cz/`. Model `gemini-3-flash-preview`.
 
-**RAG knowledge base widgetu (k 2026-05-05):**
+**RAG knowledge base widgetu (k 2026-05-05 evening):**
 - 8 původních dokumentů (web pages — pozůstalostní důchody, etc.)
-- 322 nově nasazených soudních judikátů (2021-2026, dopravní nehody / újma na zdraví / bolestné)
-- Total `widget.document_ids`: 333
+- 325 soudních judikátů (2021-2026, dopravní nehody / újma na zdraví / bolestné) — pozn. 3 nové od ranního ingestu (322 + 3 admin)
+- Každý judikát má **1 lay-friendly abstract chunk** (`is_abstract=True`, `chunk_index=9000`) navíc k text-rozsudkovým chunks
+- Total `widget.document_ids`: 333 (8 + 325)
+- Total chunks v RAG: ~origin chunks + 325 abstract chunks (každý dotaz teď má dual signál: laický abstract + formální rozsudek)
 
-**Production revision:** `chatbot-api-00052-rsv` (2026-05-05) s top_k=10 + max_output_tokens=4096.
+**Production revision:** `chatbot-api-00052-rsv` (2026-05-05) s top_k=10 + max_output_tokens=4096. **Beze změny po Phase 4** — retrieval logic není závislá na abstract flagu, abstract chunky se zúčastňují cosine search like any other chunk.
 
-**Známá slabina:** Vector retrieval má slabou sémantickou shodu mezi laickými dotazy (např. "kolik dostanu na bolestném") a formálním textem rozsudků (score ~0.029). Model dle promptu correctly necituje judikát když si není jistý relevancí, ale tím se ztrácí benchmark hodnota.
+**Slabina ze 2026-05-05 ranní (vector score ~0.029 pro laické dotazy):** VYŘEŠENA Phase 4 a EMPIRICKY POTVRZENO 2026-05-05 evening (D-09). Abstract chunky vyhrávají vs web pages v RRF retrievalu, pokrytí judikátů v top-3 = 100 % (8/8 dotazů). Bez Phase 4 by se text-rozsudkové chunky do top-10 nedostaly vůbec.
 
 ## Next Steps
 
-- [ ] **Phase 4 — LLM-generated abstrakty pro judikáty** (P1): Pro každý ze 322 judikátů vygenerovat 1-2 odstavcový lay-friendly abstrakt ("co se stalo, kolik soud přiznal, klíčový důvod") přes Gemini Flash, re-embed a uložit jako alternativní/dodatečný chunk. Cíl: zlepšit retrieval shodu pro laické dotazy. Delegate: `coder`.
-- [ ] **Cleanup orphan staging instance** (P2): Cloud Run service `chatbot-api` v projektu `phoenix-staging-ea` (URL `chatbot-api-383499804038.europe-west1.run.app`) byla omylem vytvořena při AP-05. Smazat: `gcloud run services delete chatbot-api --region europe-west1 --project phoenix-staging-ea`.
-- [ ] **Phase 5 — Hybrid search** (P3): Doplnit BM25 keyword search do retrievalu (zejména na ECLI / jednací číslo), kombinovat s vector. Vyžaduje úpravu `chat/retrieval.py`.
-- [ ] **Pravidelný re-ingest** (P3): Justice.cz publikuje nová rozhodnutí denně. Zvážit cron / scheduled job, který doplňuje nové judikáty týdně. Skript je idempotentní (ECLI klíč).
+- [x] ~~**Změřit přínos Phase 4** (P1)~~ — DONE 2026-05-05, viz D-09. Eval skript `scripts/eval_phase4_retrieval.py` zachován pro re-runs.
+- [x] ~~**Cleanup orphan staging instance**~~ — DONE 2026-05-05 evening, Board OK obdržen, `gcloud run services delete chatbot-api --project phoenix-staging-ea` úspěšný. Produkce v `chatbot-platform-2026` (rev 00052-rsv) ověřena nedotčená.
+- [ ] **Sledovat šum chunk** (P3): `ECLI_CZ_OSTA_2023_9.C.218.2021.1` se opakuje jako web_page kandidát napříč různými laickými dotazy v eval. Zkontrolovat, zda to nedegraduje kvalitu odpovědí — pokud ano, zvážit re-chunking nebo blacklist.
+- [ ] **Phase 5 — Hybrid search refinement** (P3): RetrievalService už BM25 + vector RRF má (`src/features/chat/retrieval.py`). Otázka, zda doplnit ECLI/JC exact-match boost (BM25 sice citaci najde, ale RRF k=60 ji utlumí). Vyžadovalo by speciální handler před RRF.
+- [ ] **Pravidelný re-ingest** (P3): Justice.cz publikuje nová rozhodnutí denně. Cron / Cloud Scheduler týdně volá `scripts/ingest_judikaty.py --years <current>` + `scripts/generate_judikat_abstracts.py`. Oba skripty idempotentní.
 - [ ] **Echo feature refactor** (P3, mimo tuto session): rozpracované soubory `src/features/echo/`, `tests/test_echo_*.py`, `static/echo/` patří do jiné rozdělané práce, ne tato session — neřešit zde.
