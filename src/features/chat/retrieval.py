@@ -185,6 +185,13 @@ class RetrievalService:
         """
         Build context string from retrieved chunks.
 
+        For judikat chunks (metadata.soud + metadata.jednaci_cislo both non-empty),
+        the header is enriched:
+            [Source N — <soud>, sp. zn. <jednaci_cislo>, <ecli>]
+
+        For all other chunks (web pages, PDFs, empty metadata):
+            [Source N]
+
         Args:
             chunks: Retrieved chunks with scores
             max_tokens: Approximate max tokens for context
@@ -199,15 +206,36 @@ class RetrievalService:
         total_chars = 0
         max_chars = max_tokens * 4  # Rough estimate: 1 token ≈ 4 chars
 
-        for chunk in chunks:
+        for source_number, chunk in enumerate(chunks, start=1):
             chunk_text = chunk["text"]
             if total_chars + len(chunk_text) > max_chars:
                 break
 
-            context_parts.append(f"[Source {chunk['chunk_index'] + 1}]\n{chunk_text}")
+            header = self._build_source_header(source_number, chunk)
+            context_parts.append(f"{header}\n{chunk_text}")
             total_chars += len(chunk_text)
 
         return "\n\n---\n\n".join(context_parts)
+
+    @staticmethod
+    def _build_source_header(source_number: int, chunk: dict) -> str:
+        """
+        Build the [Source N ...] header for a chunk.
+
+        Returns enriched header if chunk has judikat metadata
+        (soud and jednaci_cislo both non-empty), otherwise plain [Source N].
+        """
+        metadata = chunk.get("metadata") or {}
+        soud = (metadata.get("soud") or "").strip()
+        jednaci_cislo = (metadata.get("jednaci_cislo") or "").strip()
+        ecli = (metadata.get("ecli") or "").strip()
+
+        if soud and jednaci_cislo:
+            if ecli:
+                return f"[Source {source_number} — {soud}, sp. zn. {jednaci_cislo}, {ecli}]"
+            return f"[Source {source_number} — {soud}, sp. zn. {jednaci_cislo}]"
+
+        return f"[Source {source_number}]"
 
 
 def get_retrieval_service() -> RetrievalService:

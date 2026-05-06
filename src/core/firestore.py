@@ -122,22 +122,65 @@ class FirestoreClient:
             batch.commit()
 
     async def get_all_chunks(self, doc_ids: list[str] | None = None) -> list[dict[str, Any]]:
-        """Get all chunks, optionally filtered by document IDs."""
+        """Get all chunks, optionally filtered by document IDs.
+
+        Each returned chunk dict is enriched with the parent document's metadata
+        so that build_context() can generate accurate source headers (e.g. court
+        name for judikat chunks).  Chunk-level metadata takes precedence; if the
+        chunk already has a non-empty value for a key the document value is NOT
+        overwritten.
+        """
         all_chunks = []
 
         if doc_ids:
             for doc_id in doc_ids:
                 doc_ref = self.db.collection("documents").document(doc_id)
+                doc_snap = doc_ref.get()
+                doc_metadata: dict[str, Any] = {}
+                if doc_snap.exists:
+                    doc_data = doc_snap.to_dict() or {}
+                    doc_metadata = doc_data.get("metadata") or {}
+
                 chunks = doc_ref.collection("chunks").stream()
-                all_chunks.extend([chunk.to_dict() for chunk in chunks])
+                for chunk_snap in chunks:
+                    chunk = chunk_snap.to_dict()
+                    chunk["metadata"] = self._merge_metadata(
+                        chunk.get("metadata") or {}, doc_metadata
+                    )
+                    all_chunks.append(chunk)
         else:
             # Get chunks from all documents (for single user/project)
             docs = self.db.collection("documents").stream()
             for doc in docs:
+                doc_data = doc.to_dict() or {}
+                doc_metadata: dict[str, Any] = doc_data.get("metadata") or {}
+
                 chunks = doc.reference.collection("chunks").stream()
-                all_chunks.extend([chunk.to_dict() for chunk in chunks])
+                for chunk_snap in chunks:
+                    chunk = chunk_snap.to_dict()
+                    chunk["metadata"] = self._merge_metadata(
+                        chunk.get("metadata") or {}, doc_metadata
+                    )
+                    all_chunks.append(chunk)
 
         return all_chunks
+
+    @staticmethod
+    def _merge_metadata(
+        chunk_meta: dict[str, Any], doc_meta: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Merge document-level metadata into chunk metadata.
+
+        Chunk-level values win when non-empty; document-level values fill gaps.
+        This is additive — we never remove keys the chunk already has.
+        """
+        merged = dict(doc_meta)
+        for key, value in chunk_meta.items():
+            if value:  # Chunk value wins when non-empty
+                merged[key] = value
+            elif key not in merged:
+                merged[key] = value
+        return merged
 
     # Conversation operations
     async def create_conversation(self, session_id: str, document_ids: list[str]) -> dict[str, Any]:
