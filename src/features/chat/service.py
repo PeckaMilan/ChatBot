@@ -1,5 +1,6 @@
 """Chat service with RAG pipeline."""
 
+import logging
 import time
 
 from src.core.firestore import get_firestore_client
@@ -10,8 +11,11 @@ from src.utils.language import detect_language
 
 from .memory import ConversationMemory, get_conversation_memory
 from .models import ChatResponse, SourceReference
+from .response_guard import sanitize_response
 from .retrieval import RetrievalService, get_retrieval_service
 from .sanitizer import detect_pii, redact_pii
+
+_logger = logging.getLogger(__name__)
 
 
 class ChatService:
@@ -101,6 +105,15 @@ class ChatService:
             history=history if history else None,
             model_id=model_id,
         )
+
+        # Post-process: strip fabricated citations not backed by retrieved sources
+        response_text, was_sanitized = sanitize_response(response_text, chunks)
+        if was_sanitized:
+            _logger.warning(
+                "Response sanitized: fabricated citations stripped (widget=%s, session=%s)",
+                widget_id,
+                session_id,
+            )
 
         response_time_ms = int((time.time() - start_time) * 1000)
 

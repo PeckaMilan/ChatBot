@@ -1,6 +1,7 @@
 """Chat API endpoints."""
 
 import json
+import logging
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
@@ -12,9 +13,12 @@ from src.core.rate_limiter import limiter
 from src.features.billing.service import get_usage_service, UsageLimitExceededError
 
 from .models import ChatRequest, ChatResponse
+from .response_guard import sanitize_response
 from .sanitizer import detect_pii, redact_pii
 from .service import get_chat_service
 from .retrieval import get_retrieval_service
+
+_logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -222,6 +226,15 @@ async def widget_chat_stream(request: Request, widget_id: str, body: ChatRequest
                 }
                 for c in top_chunks
             ]
+
+            # Post-process: strip fabricated citations not backed by retrieved chunks
+            cleaned_response, was_sanitized = sanitize_response(full_response, sources)
+            if was_sanitized:
+                _logger.warning(
+                    "Response sanitized: fabricated citations stripped (widget=%s)",
+                    widget_id,
+                )
+                yield f"data: {json.dumps({'replace_message': cleaned_response})}\n\n"
 
             # Send done signal with sources and PII warning
             done_data = {
