@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # Public API URL (for widget embed code)
     public_api_url: str = "https://chatbot-api-182382115587.europe-west1.run.app"
 
+    # Echo API (politician statement monitor)
+    ECHO_API_URL: str = "http://localhost:8001"
+
     # Stripe billing (optional)
     stripe_api_key: str = ""
     stripe_webhook_secret: str = ""
