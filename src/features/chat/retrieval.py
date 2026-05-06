@@ -97,6 +97,7 @@ class RetrievalService:
                     "text": chunk["text"],
                     "chunk_index": chunk["chunk_index"],
                     "page_number": chunk.get("page_number"),
+                    "metadata": chunk.get("metadata") or {},
                     "vector_score": vector_score,
                 }
             )
