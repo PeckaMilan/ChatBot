@@ -132,3 +132,29 @@
   "notes": "Court name hallucination fix delivered same-session: smoke detect → root cause → dual-layer fix (data + prompt) → TDD → deploy → smoke verify. PENDING P2 \"OSTA šum\" task downgraded to verify-post-D-10."
 }
 ```
+
+
+### ChatBot — Multi-layer defense + metadata propagation end-to-end (rev 00058-lhz)
+- OSTA verify smoke odhalil 2/5 "halucinací" v Q3+Q5 — ukázalo se ale (po metadata propagation fix), že Q3 je legitimní retrieval crossover (citace `32 C 207/2022-106` doložena v chunk z `ECLI_CZ_KSOS_2024_57.Co.157.2024.1`, KS Ostrava odvolací rozsudek). AP-07 zaznamenán: smoke methodology musí kontrolovat všech `top_k` chunks, ne jen top-3 sources.
+- Anti-fabrication klauzule (957 chars) appendnuta do widget system promptu — selhala sama o sobě (Q3 stále halucinoval u pre-fix rev), ale je užitečná jako 1. obranná vrstva.
+- Implementován post-process guard `src/features/chat/response_guard.py` (97 řádků, 10 unit testů, TDD): regex JC + ÚS + ECLI, lenient page-suffix match, deterministicky strippuje nedoložené citace na placeholder. Integrováno v `service.py` (blocking) + `router.py` (streaming buffer + `replace_message` SSE event). Commit `2dabe91`.
+- Debug iterace v produkci (rev 00057-tjb s `[GUARD-DEBUG]` printy) odhalila root cause: `retrieval.py:scored_chunks` nepropagoval `metadata` field. AP-08 zaznamenán. Fix: 1 řádek `"metadata": chunk.get("metadata") or {}` v scored_chunks dict literálu. Commit `4bb1f73`.
+- Final smoke 5/5 PASS, rev `chatbot-api-00058-lhz`, 0 fabrikací, 0 sanitized warningů.
+- Phase 5 (ECLI/JC exact-match boost) plán hotov od plannera, ready-to-implement, prerekvizita (metadata propagation) splněna.
+- Compliance: HR-01 (deploy s `--project chatbot-platform-2026`), HR-02 (echo netknuto, `.dockerignore` excluduje), AP-04 (po 1 selhané anti-fab iteraci eskalováno na Board, ne tweakování).
+
+```json
+{
+  "eval_block": true,
+  "date": "2026-05-06",
+  "project": "ChatBot",
+  "session_id": "4bb1f73",
+  "pass_k": null,
+  "board_escalations": 2,
+  "anti_patterns_repeated": 0,
+  "avg_context_needed": null,
+  "stale_antipatterns_flagged": 0,
+  "reflexion_triggers": 0,
+  "notes": "Multi-layer defense delivered: anti-fab prompt + post-process guard + metadata propagation. Surprise finding: Q3 halucinace z predchozi session byla retrieval crossover (AP-07). Real bug: D-10 metadata se zastavovala ve scored_chunks (AP-08, D-11(c) fix)."
+}
+```
